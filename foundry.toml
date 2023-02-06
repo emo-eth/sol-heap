@@ -1,0 +1,13 @@
+[profile.default]
+src = 'src'
+out = 'out'
+libs = ['lib']
+bytecode_hash = 'none'
+
+[fmt]
+bracket_spacing = true
+number_underscore = "thousands"
+wrap_comments = true
+line_length = 80
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config
