@@ -2,12 +2,12 @@
 pragma solidity ^0.8.17;
 
 import { BaseTest } from "test/BaseTest.sol";
-import { MinHeap } from "src/MinHeap.sol";
+import { MinHeapArray } from "src/MinHeap.sol";
 
 contract MinHeapTest is BaseTest {
-    MinHeap.Heap private heap;
+    MinHeapArray.Heap private heap;
 
-    using MinHeap for MinHeap.Heap;
+    using MinHeapArray for MinHeapArray.Heap;
 
     function setUp() public virtual override { }
 
@@ -17,7 +17,6 @@ contract MinHeapTest is BaseTest {
             assertEq(1, heap.peek());
             assertEq(i, heap.size());
         }
-        delete heap;
     }
 
     function testPop() public {
