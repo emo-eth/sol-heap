@@ -233,26 +233,38 @@ library MinHeapMap {
         return (rootNode.value(), lastNodeKey, lastNode);
     }
 
+    /**
+     * @dev Get the key of the rightmost node in the heap. Used when deleting
+     * leftmost node to find new lastNode.
+     */
     function getRightmostKey(uint256 nodesSlot, uint256 rootKey)
         internal
         view
         returns (uint256)
     {
         Node rootNode = _get(nodesSlot, rootKey);
+        // if no right child, root is rightmost
         uint256 rightmostKey = rootKey;
         while (rootNode.right() != EMPTY) {
+            // set first to avoid overwriting with EMPTY
             rightmostKey = rootNode.right();
             rootNode = _get(nodesSlot, rightmostKey);
         }
         return rightmostKey;
     }
 
+    /**
+     * @dev Wrap a value into a node and insert it into the last position of the
+     * heap, then percolate the node up until heap properties are satisfied.
+     */
     function insert(Heap storage heap, uint256 key, uint256 nodeValue)
         internal
     {
         uint256 nodesSlot = _nodesSlot(heap);
         HeapMetadata heapMetadata = heap.heapMetadata;
+        // todo: consider pre-updating heap metadata
         uint256 parentKey = EMPTY;
+        // if it is not the first node in the heap
         if (heapMetadata.size() > 0) {
             unchecked {
                 heapMetadata = heapMetadata.setSize(heapMetadata.size() + 1);
@@ -276,19 +288,22 @@ library MinHeapMap {
                 _insertPointer: PointerType.createPointer(key, false)
             });
         }
+        // create node for new value and update it in the nodes mapping
         Node newNode = NodeType.createNode({
             _value: nodeValue,
             _parent: parentKey,
             _left: EMPTY,
             _right: EMPTY
         });
-
         _update(nodesSlot, key, newNode);
 
-        heap.heapMetadata = percUp(nodesSlot, heapMetadata, key, newNode); //,
-            // parentKey, parentNode, right);
+        // percolate new node up in the heap and store updated heap metadata
+        heap.heapMetadata = percUp(nodesSlot, heapMetadata, key, newNode);
     }
 
+    /**
+     * @dev Percolate a node up the heap until heap properties are satisfied.
+     */
     function percUp(
         uint256 nodesSlot,
         HeapMetadata heapMetadata,
@@ -332,6 +347,9 @@ library MinHeapMap {
         return heapMetadata;
     }
 
+    /**
+     * @dev Update heap metadata when a key is swapped with its parent.
+     */
     function _updateMetadata(
         HeapMetadata heapMetadata,
         uint256 key,
@@ -396,7 +414,7 @@ library MinHeapMap {
             heapMetadata = heapMetadata.setLeftmostNodeKey(leftmostParent);
         } else {
             heapMetadata = heapMetadata.setLastNodeKey(
-                getPreviousSiblingPointer(nodesSlot, lastNodeKey)
+                getPreviousSiblingKey(nodesSlot, lastNodeKey)
             );
         }
 
@@ -503,7 +521,11 @@ library MinHeapMap {
         return PointerType.createPointer(tempKey, false);
     }
 
-    function getPreviousSiblingPointer(uint256 nodesSlot, uint256 key)
+    /**
+     * @dev get the key of a node's "previous" sibling (NOTE: assumes key is
+     * never leftmost key)
+     */
+    function getPreviousSiblingKey(uint256 nodesSlot, uint256 key)
         internal
         view
         returns (uint256 siblingKey)
@@ -535,7 +557,7 @@ library MinHeapMap {
                 ++numAncestors;
             }
         }
-        // when isLeft is no longer true, the pointer key  will be the key of
+        // when isLeft is no longer true, the pointer key will be the key of
         // rightmost descendent of the left child of the ancestor
         tempKey = ancestorNode.left();
         tempNode = _get(nodesSlot, tempKey);
@@ -572,6 +594,9 @@ library MinHeapMap {
         return tempKey;
     }
 
+    /**
+     * @dev Determine if all layers of the heap are filled.
+     */
     function allLayersFilled(uint256 numNodes)
         internal
         pure
@@ -580,10 +605,15 @@ library MinHeapMap {
         assembly {
             // all layers are full if numNodes + 1 is a power of 2 (only 1 bit
             // set which does not overlap with others)
+            // e.g. heap with 1 element is full, 3 elements is full, 7 elements
+            // is full... etc. 1 & 2 == 3 & 4 == 7 & 8 == 0
             _allLayersFilled := iszero(and(add(1, numNodes), numNodes))
         }
     }
 
+    /**
+     * @dev Percolate a node down the heap to satisfy heap properties.
+     */
     function percDown(
         uint256 nodesSlot,
         HeapMetadata heapMetadata,
@@ -625,6 +655,9 @@ library MinHeapMap {
         return heapMetadata;
     }
 
+    /**
+     * @notice Remove the root node and return its value.
+     */
     function pop(Heap storage heap) internal returns (uint256) {
         uint256 nodesSlot = _nodesSlot(heap);
         // pre-emptively update with new root and new lastNode
@@ -639,8 +672,34 @@ library MinHeapMap {
         return rootVal;
     }
 
+    /**
+     * @notice Get the value of the root node without removing it.
+     */
     function peek(Heap storage heap) internal view returns (uint256) {
         return _get(_nodesSlot(heap), heap.heapMetadata.rootKey()).value();
+    }
+
+    function update(Heap storage heap, uint256 key, uint256 newValue)
+        internal
+    {
+        uint256 nodesSlot = _nodesSlot(heap);
+        Node node = _get(nodesSlot, key);
+        uint256 oldValue = node.value();
+        if (newValue == oldValue) {
+            return;
+        }
+        // set new value and update
+        node = node.setValue(newValue);
+        // todo: write first?
+        _update(nodesSlot, key, node);
+        // if new value is less than old value, percolate up to satisfy minHeap
+        // properties
+        if (newValue < oldValue) {
+            percUp(nodesSlot, heap.heapMetadata, key, node);
+        } else {
+            // else percolateDown to satisfy minHeap properties
+            percDown(nodesSlot, heap.heapMetadata, key, node);
+        }
     }
 
     function _nodesSlot(Heap storage heap) internal pure returns (uint256) {
