@@ -41,7 +41,7 @@ contract MinHeapMapTest is BaseTest {
         });
         MinHeapMap._update(nodesSlot, 1, rootNode);
         HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
-            _root: 1,
+            _rootKey: 1,
             _size: 1,
             _lastNodeKey: 1,
             _leftmostNodeKey: 1,
@@ -60,7 +60,7 @@ contract MinHeapMapTest is BaseTest {
         });
         MinHeapMap._update(nodesSlot, key, rootNode);
         HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
-            _root: key,
+            _rootKey: key,
             _size: 1,
             _lastNodeKey: key,
             _leftmostNodeKey: key,

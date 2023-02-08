@@ -18,13 +18,13 @@ contract HeapMetadataTypeTest is Test {
     ) public {
         Pointer insertPointer = PointerType.createPointer(insertKey, right);
         HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
-            _root: root,
+            _rootKey: root,
             _size: size,
             _leftmostNodeKey: leftmostNodeKey,
             _lastNodeKey: lastKey,
             _insertPointer: insertPointer
         });
-        assertEq(heapMetadata.root(), root, "root incorrect");
+        assertEq(heapMetadata.rootKey(), root, "root incorrect");
         assertEq(heapMetadata.size(), size, "size incorrect");
         assertEq(
             heapMetadata.leftmostNodeKey(),
@@ -61,13 +61,13 @@ contract HeapMetadataTypeTest is Test {
 
     function testCreateHeapMetadata() public {
         HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
-            _root: 1,
+            _rootKey: 1,
             _size: 2,
             _leftmostNodeKey: 3,
             _lastNodeKey: 4,
             _insertPointer: PointerType.createPointer(5, true)
         });
-        assertEq(heapMetadata.root(), 1, "root incorrect");
+        assertEq(heapMetadata.rootKey(), 1, "root incorrect");
         assertEq(heapMetadata.size(), 2, "size incorrect");
         assertEq(heapMetadata.leftmostNodeKey(), 3, "leftmostNodeKey incorrect");
         assertEq(heapMetadata.lastNodeKey(), 4, "lastKey incorrect");
@@ -104,13 +104,13 @@ contract HeapMetadataTypeTest is Test {
     ) public {
         Pointer insertPointer = PointerType.createPointer(insertKey, right);
         HeapMetadata heapMetadata = HeapMetadataType.safeCreateHeapMetadata({
-            _root: root,
+            _rootKey: root,
             _size: size,
             _leftmostNodeKey: leftmostNodeKey,
             _lastNodeKey: lastKey,
             _insertPointer: insertPointer
         });
-        assertEq(heapMetadata.root(), root, "root incorrect");
+        assertEq(heapMetadata.rootKey(), root, "root incorrect");
         assertEq(heapMetadata.size(), size, "size incorrect");
         assertEq(
             heapMetadata.leftmostNodeKey(),
@@ -149,7 +149,7 @@ contract HeapMetadataTypeTest is Test {
         HeapMetadata heapMetadata = HeapMetadataType.safeCreateHeapMetadata(
             1, 2, 3, 4, PointerType.createPointer(5, true)
         );
-        assertEq(heapMetadata.root(), 1, "root incorrect");
+        assertEq(heapMetadata.rootKey(), 1, "root incorrect");
         assertEq(heapMetadata.size(), 2, "size incorrect");
         assertEq(heapMetadata.leftmostNodeKey(), 3, "leftmostNodeKey incorrect");
         assertEq(heapMetadata.lastNodeKey(), 4, "lastKey incorrect");
