@@ -8,6 +8,7 @@ import { Pointer, PointerType } from "./lib/PointerType.sol";
 library MinHeapMap {
     error MinHeap__Empty();
     error MinHeap__NotEmpty();
+    error NodeExists();
 
     // uint32 keys should be non-zero
     uint256 constant EMPTY = 0;
@@ -24,6 +25,9 @@ library MinHeapMap {
         HeapMetadata heapMetadata;
     }
 
+    /**
+     * @dev get the size of a heap
+     */
     function size(Heap storage heap) internal view returns (uint256 _size) {
         HeapMetadata heapMetadata;
         assembly {
@@ -70,69 +74,32 @@ library MinHeapMap {
         Node childNode,
         uint256 parentKey,
         Node parentNode
-    ) internal {
+    )
+        internal
+        returns (
+            Node updatedFormerChild,
+            Node updateFormerParent,
+            uint256 childNewParent
+        )
+    {
         bool isRight = parentNode.right() == childKey;
-        uint256 childNewParent = parentNode.parent();
+        childNewParent = parentNode.parent();
 
-        // cache these values since we need to update them respectively
-        uint256 parentLeft = parentNode.left();
-        uint256 parentRight = parentNode.right();
-        uint256 parentNewLeft = childNode.left();
-        uint256 parentNewRight = childNode.right();
-        // block scope to avoid stacc2dank
-        {
-            // one of parent's left or right is the child; we can calculate this
-            // branchlessly
-            uint256 childNewLeft;
-            uint256 childNewRight;
-            assembly {
-                // if child is right node, set child left to parent left and
-                // child right to parent
-                // if child is left - new left is parent, otherwise parentLeft
-                childNewLeft :=
-                    add(
-                        mul(
-                            // "is left"
-                            iszero(isRight),
-                            // left is parent
-                            parentKey
-                        ),
-                        mul(
-                            // "is not left"
-                            isRight,
-                            // left is parent left
-                            parentLeft
-                        )
-                    )
-                // if child is right - new right is parent, otherwise
-                // parentRight
-                childNewRight :=
-                    add(
-                        mul(
-                            // "is right"
-                            isRight,
-                            // right is parent
-                            parentKey
-                        ),
-                        mul(
-                            // "is not right"
-                            iszero(isRight),
-                            // right is parent right
-                            parentRight
-                        )
-                    )
-            }
-            childNode = childNode.setParent(childNewParent);
-            childNode = childNode.setLeft(childNewLeft);
-            childNode = childNode.setRight(childNewRight);
+        Node tempNode = childNode.setParent(childNewParent);
+        if (isRight) {
+            tempNode = tempNode.setRight(parentKey).setLeft(parentNode.left());
+        } else {
+            tempNode = tempNode.setLeft(parentKey).setRight(parentNode.right());
         }
 
-        parentNode = parentNode.setParent(childKey).setLeft(parentNewLeft)
-            .setRight(parentNewRight);
+        parentNode = parentNode.setParent(childKey).setLeft(childNode.left())
+            .setRight(childNode.right());
+        childNode = tempNode;
 
         // update storage before percolating (which reads from storage)
         _update(nodesSlot, childKey, childNode);
         _update(nodesSlot, parentKey, parentNode);
+        return (childNode, parentNode, childNewParent);
     }
 
     /**
@@ -167,34 +134,41 @@ library MinHeapMap {
     function _swapWithRoot(
         uint256 nodesSlot,
         Node rootNode,
-        uint256 lastKey,
+        uint256 lastNodeKey,
         Node lastNode
-    ) internal returns (Node updatedLastNode) {
-        uint256 leftChildOfRoot = rootNode.left();
-        uint256 rightChildOfRoot = rootNode.right();
-        uint256 newLeftKey;
-        uint256 newRightKey;
-        assembly {
-            newLeftKey :=
-                mul(
-                    // if "is not left child of root"
-                    iszero(eq(leftChildOfRoot, lastKey)),
-                    // old left child, else empty
-                    leftChildOfRoot
-                )
-            newRightKey :=
-                mul(
-                    // if "is not right child of root"
-                    iszero(eq(rightChildOfRoot, lastKey)),
-                    // old right child, else empty
-                    rightChildOfRoot
-                )
+    ) internal returns (Node) {
+        uint256 lastNodeParentKey = lastNode.parent();
+
+        // update root children
+        uint256 rootLeftKey = rootNode.left();
+        uint256 rootRightKey = rootNode.right();
+        if (rootLeftKey != EMPTY) {
+            Node leftNode = _get(nodesSlot, rootLeftKey);
+            leftNode = leftNode.setParent(lastNodeKey);
+            _update(nodesSlot, rootLeftKey, leftNode);
         }
-        lastNode =
-            lastNode.setParent(EMPTY).setLeft(newLeftKey).setRight(newRightKey);
-        _updateChildrenParentPointers(
-            nodesSlot, newLeftKey, newRightKey, lastKey
+        if (rootRightKey != EMPTY) {
+            Node rightNode = _get(nodesSlot, rootRightKey);
+            rightNode = rightNode.setParent(lastNodeKey);
+            _update(nodesSlot, rootRightKey, rightNode);
+        }
+
+        // update last node parent
+
+        Node lastNodeParent = _get(nodesSlot, lastNodeParentKey);
+        uint256 lastNodeParentLeft = lastNodeParent.left();
+        if (lastNodeParentLeft == lastNodeKey) {
+            lastNodeParent = lastNodeParent.setLeft(EMPTY);
+        } else {
+            lastNodeParent = lastNodeParent.setRight(EMPTY);
+        }
+        _update(nodesSlot, lastNodeParentKey, lastNodeParent);
+
+        lastNode = lastNode.setParent(EMPTY).setLeft(rootLeftKey).setRight(
+            rootRightKey
         );
+        _update(nodesSlot, lastNodeKey, lastNode);
+
         return lastNode;
     }
 
@@ -220,9 +194,12 @@ library MinHeapMap {
         if (rootKey != lastNodeKey) {
             lastNode = _get(nodesSlot, lastNodeKey);
             rootNode = _get(nodesSlot, rootKey);
-            lastNode = _swapWithRoot(nodesSlot, rootNode, lastNodeKey, lastNode);
-            // update lastNode, which is now the root node
-            _update(nodesSlot, lastNodeKey, lastNode);
+            lastNode = _swapWithRoot({
+                nodesSlot: nodesSlot,
+                rootNode: rootNode,
+                lastNodeKey: lastNodeKey,
+                lastNode: lastNode
+            });
         } else {
             rootNode = _get(nodesSlot, rootKey);
             lastNode = Node.wrap(0);
@@ -254,6 +231,65 @@ library MinHeapMap {
     }
 
     /**
+     * @dev Update heap metadata before percolating up after inserting a node
+     */
+    function _preInsertUpdateHeapMetadata(
+        uint256 nodesSlot,
+        HeapMetadata heapMetadata,
+        uint256 key
+    ) internal view returns (HeapMetadata) {
+        (
+            uint256 root,
+            uint256 _size,
+            uint256 leftmostNodeKey,
+            ,
+            Pointer insertPointer
+        ) = heapMetadata.unpack();
+
+        if (_size == 0) {
+            return HeapMetadataType.createHeapMetadata({
+                _rootKey: key,
+                _size: 1,
+                _leftmostNodeKey: key,
+                _lastNodeKey: key,
+                _insertPointer: PointerType.createPointer({
+                    _key: key,
+                    _right: false
+                })
+            });
+        }
+        unchecked {
+            _size += 1;
+        }
+        if (insertPointer.key() == leftmostNodeKey) {
+            leftmostNodeKey = key;
+        }
+        uint256 insertPointerKey;
+        // branchless version of:
+        // if (insertPointer.key() == leftmostNodeKey)
+        //     leftmostNodeKey = key;
+        assembly {
+            let areEq := eq(insertPointerKey, leftmostNodeKey)
+            leftmostNodeKey :=
+                add(mul(areEq, key), mul(iszero(areEq), leftmostNodeKey))
+        }
+
+        insertPointer = getNextInsertPointer(
+            nodesSlot, _size, leftmostNodeKey, insertPointer
+        );
+
+        heapMetadata = HeapMetadataType.createHeapMetadata({
+            _rootKey: root,
+            _size: _size,
+            _leftmostNodeKey: leftmostNodeKey,
+            _lastNodeKey: key,
+            _insertPointer: insertPointer
+        });
+
+        return heapMetadata;
+    }
+
+    /**
      * @dev Wrap a value into a node and insert it into the last position of the
      * heap, then percolate the node up until heap properties are satisfied.
      */
@@ -261,33 +297,26 @@ library MinHeapMap {
         internal
     {
         uint256 nodesSlot = _nodesSlot(heap);
+        Node retrieved = _get(nodesSlot, key);
         HeapMetadata heapMetadata = heap.heapMetadata;
-        // todo: consider pre-updating heap metadata
-        uint256 parentKey = EMPTY;
-        // if it is not the first node in the heap
-        if (heapMetadata.size() > 0) {
-            unchecked {
-                heapMetadata = heapMetadata.setSize(heapMetadata.size() + 1);
-            }
-
-            Pointer parentPointer = heapMetadata.insertPointer();
-            bool right;
-            (parentKey, right) = parentPointer.unpack();
-            Node parentNode = _get(nodesSlot, parentKey);
-            if (right) {
-                parentNode.setRight(key);
-            } else {
-                parentNode.setLeft(key);
-            }
-        } else {
-            heapMetadata = HeapMetadataType.createHeapMetadata({
-                _rootKey: key,
-                _size: 1,
-                _leftmostNodeKey: key,
-                _lastNodeKey: key,
-                _insertPointer: PointerType.createPointer(key, false)
-            });
+        // node value can be "empty" IF it is also the root (ie, zero value, no
+        // children or parent)
+        if (Node.unwrap(retrieved) != EMPTY || heapMetadata.rootKey() == key) {
+            revert NodeExists();
         }
+        Pointer insertPointer = heapMetadata.insertPointer();
+        uint256 parentKey = insertPointer.key();
+
+        if (parentKey != EMPTY) {
+            Node parentNode = _get(nodesSlot, parentKey);
+            if (insertPointer.right()) {
+                parentNode = parentNode.setRight(key);
+            } else {
+                parentNode = parentNode.setLeft(key);
+            }
+            _update(nodesSlot, parentKey, parentNode);
+        }
+
         // create node for new value and update it in the nodes mapping
         Node newNode = NodeType.createNode({
             _value: nodeValue,
@@ -296,6 +325,9 @@ library MinHeapMap {
             _right: EMPTY
         });
         _update(nodesSlot, key, newNode);
+
+        heapMetadata =
+            _preInsertUpdateHeapMetadata(nodesSlot, heapMetadata, key);
 
         // percolate new node up in the heap and store updated heap metadata
         heap.heapMetadata = percUp(nodesSlot, heapMetadata, key, newNode);
@@ -316,23 +348,9 @@ library MinHeapMap {
             parentNode = _get(nodesSlot, parentKey);
             // if node is less than parent, swap
             if (node.value() < parentNode.value()) {
-                // decide which side of parent to swap with
-                bool isRight = parentNode.right() == key;
-                Node tmp;
-                uint256 newParentKey = parentNode.parent();
-                if (isRight) {
-                    tmp = node.setLeft(parentNode.left()).setRight(parentKey)
-                        .setParent(newParentKey);
-                } else {
-                    tmp = node.setLeft(parentKey).setRight(parentNode.right())
-                        .setParent(newParentKey);
-                }
-                parentNode = parentNode.setLeft(node.left()).setRight(
-                    node.right()
-                ).setParent(key);
-                node = tmp;
-                _update(nodesSlot, key, node);
-                _update(nodesSlot, parentKey, parentNode);
+                uint256 newParentKey;
+                (node,, newParentKey) =
+                    _swap(nodesSlot, key, node, parentKey, parentNode);
 
                 heapMetadata = _updateMetadata(heapMetadata, key, parentKey);
                 // node is now in the place of its parent
@@ -356,27 +374,31 @@ library MinHeapMap {
         uint256 parentKey
     ) internal pure returns (HeapMetadata) {
         // update root pointer if necessary
-        if (parentKey == heapMetadata.rootKey()) {
+        (
+            uint256 rootKey,
+            ,
+            uint256 leftmostNodeKey,
+            uint256 lastNodeKey,
+            Pointer insertPointer
+        ) = heapMetadata.unpack();
+        if (parentKey == rootKey) {
             heapMetadata = heapMetadata.setRootKey(key);
         }
         // update leftmost pointer if necessary
-        if (key == heapMetadata.leftmostNodeKey()) {
+        if (key == leftmostNodeKey) {
             heapMetadata = heapMetadata.setLeftmostNodeKey(parentKey);
         }
         // update last node pointer if necessary
-        if (key == heapMetadata.lastNodeKey()) {
+        if (key == lastNodeKey) {
             heapMetadata = heapMetadata.setLastNodeKey(parentKey);
         }
-        if (key == heapMetadata.insertPointer().key()) {
+        if (key == insertPointer.key()) {
             // TODO: assume insertPointer has been udpated at this
             // point, ie, it knows if right leaf is full
             heapMetadata = heapMetadata.setInsertPointer(
-                PointerType.createPointer(
-                    parentKey, heapMetadata.insertPointer().right()
-                )
+                PointerType.createPointer(parentKey, insertPointer.right())
             );
-        }
-        if (parentKey == heapMetadata.insertPointer().key()) {
+        } else if (parentKey == insertPointer.key()) {
             // i think we can always assume that if swapping with a
             // parent that used to be insert pointer then only the right
             // child is free
@@ -387,57 +409,71 @@ library MinHeapMap {
         return heapMetadata;
     }
 
+    /**
+     * Pre-emptively update heap metadata before popping the root, returning the
+     * old root key and last node key.
+     */
     function _prePopUpdateMetadata(uint256 nodesSlot, HeapMetadata heapMetadata)
         internal
-        view
         returns (uint256 oldRootKey, uint256 oldLastNodeKey, HeapMetadata)
     {
-        uint256 rootKey = heapMetadata.rootKey();
-        uint256 lastNodeKey = heapMetadata.lastNodeKey();
+        (
+            uint256 originalRootKey,
+            uint256 _size,
+            uint256 leftmostNodeKey,
+            uint256 originalLastNodeKey,
+            Pointer insertPointer
+        ) = heapMetadata.unpack();
+        oldRootKey = originalRootKey;
+        oldLastNodeKey = originalLastNodeKey;
+        uint256 rootKey = originalRootKey;
+        uint256 lastNodeKey = originalLastNodeKey;
+
         // if popping root, metadata becomes empty
         if (rootKey == lastNodeKey) {
             return (rootKey, lastNodeKey, HeapMetadata.wrap(0));
         }
 
         // update root pointer
-        heapMetadata = heapMetadata.setRootKey(lastNodeKey);
+        rootKey = lastNodeKey;
 
         // update lastNode pointer; either left sibling, or rightmost node
-        if (heapMetadata.leftmostNodeKey() == lastNodeKey) {
-            heapMetadata =
-                heapMetadata.setLastNodeKey(getRightmostKey(nodesSlot, rootKey));
-
+        if (leftmostNodeKey == lastNodeKey) {
+            lastNodeKey = getRightmostKey(nodesSlot, rootKey);
             // if the leftmost node has been removed, the new leftmost node is
             // the parent of the old leftmost node
-            Node previousLeftmostNode = _get(nodesSlot, lastNodeKey);
-            uint256 leftmostParent = previousLeftmostNode.parent();
-            heapMetadata = heapMetadata.setLeftmostNodeKey(leftmostParent);
+            Node previousLeftmostNode = _get(nodesSlot, leftmostNodeKey);
+            leftmostNodeKey = previousLeftmostNode.parent();
         } else {
-            heapMetadata = heapMetadata.setLastNodeKey(
-                getPreviousSiblingKey(nodesSlot, lastNodeKey)
-            );
+            // otherwise it's the "previous" node
+            lastNodeKey = getPreviousSiblingKey(nodesSlot, lastNodeKey);
         }
 
         unchecked {
-            heapMetadata = heapMetadata.setSize(heapMetadata.size() - 1);
+            _size = _size - 1;
         }
-        heapMetadata = heapMetadata.setInsertPointer(
-            getNextInsertPointer(
-                nodesSlot,
-                heapMetadata.size(),
-                heapMetadata.leftmostNodeKey(),
-                heapMetadata.lastNodeKey()
-            )
-        );
+        insertPointer = getPreviousInsertPointer(nodesSlot, insertPointer);
 
-        return (rootKey, lastNodeKey, heapMetadata);
+        heapMetadata = HeapMetadataType.createHeapMetadata({
+            _rootKey: rootKey,
+            _size: _size,
+            _leftmostNodeKey: leftmostNodeKey,
+            _lastNodeKey: lastNodeKey,
+            _insertPointer: insertPointer
+        });
+
+        return (originalRootKey, originalLastNodeKey, heapMetadata);
     }
 
+    /**
+     * @dev Get the child pointer where the next inserted node should go in the
+     * heap.
+     */
     function getNextInsertPointer(
         uint256 nodesSlot,
         uint256 _size,
         uint256 leftmostNodeKey,
-        uint256 lastNodeKey
+        Pointer insertPointer
     ) internal view returns (Pointer pointer) {
         if (allLayersFilled(_size)) {
             // if all layers are filled, we need to add a new layer
@@ -447,33 +483,53 @@ library MinHeapMap {
             // if all layers are not filled, we need to add the new node
             // to the position to the "right" of the last node (which may be a
             // child of a different parent)
-            pointer = getNextSiblingPointer(nodesSlot, lastNodeKey);
+            pointer = getNextSiblingPointer(nodesSlot, insertPointer);
         }
     }
 
-    function getNextSiblingPointer(uint256 nodesSlot, uint256 key)
+    function getPreviousInsertPointer(uint256 nodesSlot, Pointer insertPointer)
+        internal
+        returns (Pointer pointer)
+    {
+        if (insertPointer.right()) {
+            return PointerType.createPointer(insertPointer.key(), false);
+        } else {
+            uint256 previousSiblingKey =
+                getPreviousSiblingKey(nodesSlot, insertPointer.key());
+            return PointerType.createPointer(previousSiblingKey, true);
+        }
+    }
+
+    /**
+     * @dev Get the child pointer to the next sibling of the node at the given
+     * key. Used when inserting a node.
+     */
+    function getNextSiblingPointer(uint256 nodesSlot, Pointer nextInsertPointer)
         internal
         view
         returns (Pointer siblingPointer)
     {
-        Node node = _get(nodesSlot, key);
-        uint256 ancestorKey = node.parent();
+        // Node node = _get(nodesSlot, key);
+        (uint256 ancestorKey, bool isRight) = nextInsertPointer.unpack();
+        // uint256 ancestorKey = node.parent();
         require(ancestorKey != EMPTY, "no parent");
-        bool isRight = node.right() == key;
+        // bool isRight = node.right() == key;
         if (!isRight) {
             // if it's not the right child, then that child is "next"
             return PointerType.createPointer(ancestorKey, true);
         }
         uint256 numAncestors;
-        Node ancestorNode;
-        Node tempNode;
+        Node ancestorNode = _get(nodesSlot, ancestorKey);
+        Node tempNode = ancestorNode;
         uint256 tempKey;
         while (isRight) {
             // load parent node
             tempKey = ancestorKey;
-            tempNode = _get(nodesSlot, tempKey);
             ancestorKey = tempNode.parent();
-            require(ancestorKey != EMPTY, "no intermediate parent");
+            if (ancestorKey == EMPTY) {
+                break;
+            }
+            // require(ancestorKey != EMPTY, "no intermediate parent");
             ancestorNode = _get(nodesSlot, ancestorKey);
             isRight = ancestorNode.right() == tempKey;
             unchecked {
@@ -523,11 +579,10 @@ library MinHeapMap {
 
     /**
      * @dev get the key of a node's "previous" sibling (NOTE: assumes key is
-     * never leftmost key)
+     * never leftmost key). Used when removing the last node.
      */
     function getPreviousSiblingKey(uint256 nodesSlot, uint256 key)
         internal
-        view
         returns (uint256 siblingKey)
     {
         Node node = _get(nodesSlot, key);
@@ -542,24 +597,26 @@ library MinHeapMap {
             return ancestorLeftChild;
         }
         uint256 numAncestors;
-        Node ancestorNode;
-        Node tempNode;
+        Node tempNode = ancestor;
         uint256 tempKey;
         while (isLeft) {
             // load parent node
             tempKey = ancestorKey;
-            tempNode = _get(nodesSlot, tempKey);
             ancestorKey = tempNode.parent();
-            require(ancestorKey != EMPTY, "no intermediate parent");
-            ancestorNode = _get(nodesSlot, ancestorKey);
-            isLeft = ancestorNode.left() == tempKey;
+            if (ancestorKey == EMPTY) {
+                // we have reached the root; break
+                break;
+            }
+            // require(ancestorKey != EMPTY, "no intermediate parent");
+            ancestor = _get(nodesSlot, ancestorKey);
+            isLeft = ancestor.left() == tempKey;
             unchecked {
                 ++numAncestors;
             }
         }
         // when isLeft is no longer true, the pointer key will be the key of
         // rightmost descendent of the left child of the ancestor
-        tempKey = ancestorNode.left();
+        tempKey = ancestor.left();
         tempNode = _get(nodesSlot, tempKey);
         /**
          * start at 1 since tempNode is already one child below highest
@@ -582,7 +639,7 @@ library MinHeapMap {
          *       / \  / \   /
          *      8  9 10 11 12
          */
-        for (uint256 i = 1; i < numAncestors;) {
+        for (uint256 i = 0; i < numAncestors;) {
             tempKey = tempNode.right();
             require(tempKey != EMPTY, "no right child");
             tempNode = _get(nodesSlot, tempKey);
@@ -593,10 +650,11 @@ library MinHeapMap {
         // point to right child of rightmost child of the common ancestor
         return tempKey;
     }
-
     /**
-     * @dev Determine if all layers of the heap are filled.
+     * @dev Determine if all layers of the heap are filled. Used when computing
+     * insertion pointer.
      */
+
     function allLayersFilled(uint256 numNodes)
         internal
         pure
@@ -637,10 +695,11 @@ library MinHeapMap {
                     childKey = rightKey;
                 }
             }
+
             // if node val is greater than smallest child, swap
             if (node.value() > child.value()) {
-                _swap(nodesSlot, key, node, childKey, child);
-                heapMetadata = _updateMetadata(heapMetadata, key, childKey);
+                (, node,) = _swap(nodesSlot, childKey, child, key, node);
+                heapMetadata = _updateMetadata(heapMetadata, childKey, key);
 
                 // if node was swapped, its new children are old children of
                 // child
@@ -667,7 +726,7 @@ library MinHeapMap {
         (uint256 rootVal, uint256 newRootKey, Node newRoot) =
             _pop(nodesSlot, oldRootKey, oldLastNodeKey);
         // percolate new root downwards through tree
-        percDown(nodesSlot, heapMetadata, newRootKey, newRoot);
+        heapMetadata = percDown(nodesSlot, heapMetadata, newRootKey, newRoot);
         heap.heapMetadata = heapMetadata;
         return rootVal;
     }
@@ -695,10 +754,11 @@ library MinHeapMap {
         // if new value is less than old value, percolate up to satisfy minHeap
         // properties
         if (newValue < oldValue) {
-            percUp(nodesSlot, heap.heapMetadata, key, node);
+            heap.heapMetadata = percUp(nodesSlot, heap.heapMetadata, key, node);
         } else {
             // else percolateDown to satisfy minHeap properties
-            percDown(nodesSlot, heap.heapMetadata, key, node);
+            heap.heapMetadata =
+                percDown(nodesSlot, heap.heapMetadata, key, node);
         }
     }
 
@@ -709,4 +769,6 @@ library MinHeapMap {
         }
         return nodesSlot;
     }
+
+    event Ancestor(uint256 key);
 }

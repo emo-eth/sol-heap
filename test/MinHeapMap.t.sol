@@ -11,10 +11,14 @@ contract MinHeapMapTest is BaseTest {
     using MinHeapMap for MinHeapMap.Heap;
 
     MinHeapMap.Heap private heap;
+    MinHeapMap.Heap private preFilled;
     uint256 nodesSlot;
 
     function setUp() public virtual override {
         nodesSlot = MinHeapMap._nodesSlot(heap);
+        for (uint256 i = 1; i < 255; i++) {
+            preFilled.insert(i, i);
+        }
     }
 
     function testUpdateAndGet(uint256 key, uint256 toWrap) public {
@@ -120,4 +124,67 @@ contract MinHeapMapTest is BaseTest {
             "insertPointer incorrect"
         );
     }
+
+    function testInsertPeekAndSize69() public {
+        for (uint256 i = 1; i < 255; i++) {
+            heap.insert(i, i);
+
+            assertEq(1, heap.peek());
+            assertEq(i, heap.size());
+        }
+    }
+
+    function testPop69() public {
+        for (uint256 i = 1; i < 255; i++) {
+            emit log_named_uint("popping", i);
+            emit log_named_uint(
+                "heap root key", preFilled.heapMetadata.rootKey()
+                );
+            emit log_named_uint("heap size", preFilled.heapMetadata.size());
+            emit log_named_uint(
+                "heap last node key", preFilled.heapMetadata.lastNodeKey()
+                );
+            emit log_named_uint(
+                "heap leftmost node key",
+                preFilled.heapMetadata.leftmostNodeKey()
+                );
+            emit log_named_uint(
+                "heap insert pointer",
+                Pointer.unwrap(preFilled.heapMetadata.insertPointer())
+                );
+            assertEq(i, preFilled.peek(), "wrong peek");
+            require(i == preFilled.peek(), "wrong peek");
+            assertEq(i, preFilled.pop(), "wrong pop");
+        }
+    }
+
+    // function testFuzz(uint256[] memory arr) public {
+    //     if (arr.length == 0) {
+    //         arr = new uint256[](1);
+    //         arr[0] = 1;
+    //     }
+
+    //     for (uint256 i = 0; i < arr.length; i++) {
+    //         heap.insert(arr[i], arr[i]);
+    //     }
+
+    //     uint256[] memory sorted = new uint256[](arr.length);
+    //     for (uint256 i = 0; i < arr.length; i++) {
+    //         sorted[i] = heap.pop();
+    //     }
+
+    //     for (uint256 i = 1; i < arr.length; i++) {
+    //         assertTrue(sorted[i - 1] <= sorted[i]);
+    //     }
+    // }
+
+    // function min(uint256[] memory arr) internal pure returns (uint256) {
+    //     uint256 _min = arr[0];
+    //     for (uint256 i = 1; i < arr.length; i++) {
+    //         if (arr[i] < _min) {
+    //             _min = arr[i];
+    //         }
+    //     }
+    //     return _min;
+    // }
 }
