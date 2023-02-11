@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { BaseTest } from "test/BaseTest.sol";
+import { BaseTest } from "./BaseTest.sol";
 import { MinHeapMap } from "../src/MinHeapMap.sol";
 import { Node, NodeType } from "../src/lib/NodeType.sol";
 import { HeapMetadata, HeapMetadataType } from "../src/lib/HeapMetadataType.sol";
@@ -26,6 +26,59 @@ contract MinHeapMapTest is BaseTest {
             assertEq(i, preFilled.peek(), "wrong peek");
             assertEq(i, preFilled.pop(), "wrong pop");
         }
+    }
+
+    function testRealUpdate() public {
+        MinHeapMap.update(preFilled, 69, 0);
+        assertEq(preFilled.peek(), 0, "wrong peek");
+        assertEq(preFilled.heapMetadata.rootKey(), 69, "wrong root key");
+    }
+
+    function testRealUpdate(uint256 key) public {
+        key = bound(key, 1, 257);
+        MinHeapMap.update(preFilled, key, 0);
+        assertEq(preFilled.peek(), 0, "wrong peek");
+        assertEq(preFilled.heapMetadata.rootKey(), key, "wrong root key");
+    }
+
+    function testUpdateBigger() public {
+        MinHeapMap.update(preFilled, 1, 999);
+        assertEq(preFilled.peek(), 2, "wrong peek");
+        assertEq(preFilled.heapMetadata.rootKey(), 2, "wrong root");
+        assertEq(preFilled.heapMetadata.leftmostNodeKey(), 1, "wrong leftmost");
+        MinHeapMap.update(preFilled, 2, 1000);
+        MinHeapMap.update(preFilled, 3, 1001);
+
+        uint256 last = preFilled.pop();
+        while (preFilled.size() > 0) {
+            uint256 next = preFilled.pop();
+            assertGt(next, last, "not sorted");
+            last = next;
+        }
+    }
+
+    function testInsertSort(uint256[] memory numbers) public {
+        vm.assume(numbers.length > 0);
+        for (uint256 i = 0; i < numbers.length; i++) {
+            heap.insert(i + 1, numbers[i]);
+        }
+        uint256 last = heap.pop();
+        while (heap.size() > 0) {
+            uint256 next = heap.pop();
+            assertTrue(next >= last, "not sorted");
+            last = next;
+        }
+    }
+
+    function testInsert100() public {
+        for (uint256 i = 1; i <= 100; i++) {
+            heap.insert(i, i);
+        }
+    }
+
+    function testInsert2() public {
+        heap.insert(1, 1);
+        heap.insert(2, 2);
     }
 
     function testUpdateAndGet(uint256 key, uint256 toWrap) public {
@@ -132,7 +185,7 @@ contract MinHeapMapTest is BaseTest {
         );
     }
 
-    function testInsertPeekAndSize69() public {
+    function testInsertPeekAndSize() public {
         for (uint256 i = 1; i < 16; i++) {
             heap.insert(i, i);
 
