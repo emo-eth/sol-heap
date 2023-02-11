@@ -136,6 +136,46 @@ contract MinHeapMapSnapshotTest is BaseTest {
         }
     }
 
+    function test_snapshotInsert10Diverging() public {
+        uint256 median = uint256(10) / 2;
+        for (uint256 i = 0; i < median; i++) {
+            uint256 low = median - i;
+            uint256 high = median + i + 1;
+            heap.insert(low, low);
+            heap.insert(high, high);
+        }
+    }
+
+    function test_snapshotInsert100Diverging() public {
+        uint256 median = uint256(100) / 2;
+        for (uint256 i = 0; i < median; i++) {
+            uint256 low = median - i;
+            uint256 high = median + i + 1;
+            heap.insert(low, low);
+            heap.insert(high, high);
+        }
+    }
+
+    function test_snapshotInsert1kDiverging() public {
+        uint256 median = uint256(1000) / 2;
+        for (uint256 i = 0; i < median; i++) {
+            uint256 low = median - i;
+            uint256 high = median + i + 1;
+            heap.insert(low, low);
+            heap.insert(high, high);
+        }
+    }
+
+    function test_snapshotInsert10kDiverging() public {
+        uint256 median = uint256(10_000) / 2;
+        for (uint256 i = 0; i < median; i++) {
+            uint256 low = median - i;
+            uint256 high = median + i + 1;
+            heap.insert(low, low);
+            heap.insert(high, high);
+        }
+    }
+
     function test_snapshotUpdateMedianMin100k() public {
         uint256 median = uint256(100_000) / 2;
         uint256 newVal = 0;
