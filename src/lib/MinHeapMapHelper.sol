@@ -11,11 +11,7 @@ library MinHeapMapHelper {
     /**
      * @dev Read the node for a given key
      */
-    function _get(uint256 slot, uint256 key)
-        internal
-        view
-        returns (Node node)
-    {
+    function get(uint256 slot, uint256 key) internal view returns (Node node) {
         // emit Get(key);
         // require(key != EMPTY, "empty");
         assembly {
@@ -30,7 +26,7 @@ library MinHeapMapHelper {
     /**
      * @dev Update (overwrite) the node for a given key
      */
-    function _update(uint256 nodesSlot, uint256 key, Node node) internal {
+    function update(uint256 nodesSlot, uint256 key, Node node) internal {
         assembly {
             mstore(0, key)
             mstore(0x20, nodesSlot)
@@ -42,25 +38,25 @@ library MinHeapMapHelper {
      * @dev when swapping node with its parent, the grandparent of the node will
      * need to be updated to point to node as a child
      */
-    function _updateGrandParent(
+    function updateGrandParent(
         uint256 nodesSlot,
         uint256 key,
         uint256 grandParentKey,
         uint256 replacingParentKey
     ) internal {
-        Node parentNode = _get(nodesSlot, grandParentKey);
+        Node parentNode = get(nodesSlot, grandParentKey);
         if (parentNode.left() == replacingParentKey) {
             parentNode = parentNode.setLeft(key);
         } else {
             parentNode = parentNode.setRight(key);
         }
-        _update(nodesSlot, grandParentKey, parentNode);
+        update(nodesSlot, grandParentKey, parentNode);
     }
 
     /**
      * @dev update a node
      */
-    function _updateNodeAndSibling(
+    function updateNodeAndSibling(
         uint256 nodesSlot,
         uint256 key,
         Node node,
@@ -76,24 +72,24 @@ library MinHeapMapHelper {
             uint256 parentLeft = parentNode.left();
             node = node.setRight(parentKey).setLeft(parentLeft);
             if (parentLeft != EMPTY) {
-                Node parentLeftNode = _get(nodesSlot, parentLeft);
+                Node parentLeftNode = get(nodesSlot, parentLeft);
                 parentLeftNode = parentLeftNode.setParent(key);
-                _update(nodesSlot, parentLeft, parentLeftNode);
+                update(nodesSlot, parentLeft, parentLeftNode);
             }
         } else {
             uint256 parentRight = parentNode.right();
             node = node.setLeft(parentKey).setRight(parentRight);
             if (parentRight != EMPTY) {
-                Node parentRightNode = _get(nodesSlot, parentRight);
+                Node parentRightNode = get(nodesSlot, parentRight);
                 parentRightNode = parentRightNode.setParent(key);
-                _update(nodesSlot, parentRight, parentRightNode);
+                update(nodesSlot, parentRight, parentRightNode);
             }
         }
-        _update(nodesSlot, key, node);
+        update(nodesSlot, key, node);
         return node;
     }
 
-    function _updateParent(
+    function updateParent(
         uint256 nodesSlot,
         uint256 key,
         uint256 parentKey,
@@ -107,26 +103,26 @@ library MinHeapMapHelper {
         );
 
         // update storage before percolating (which reads from storage)
-        _update(nodesSlot, parentKey, parentNode);
+        update(nodesSlot, parentKey, parentNode);
 
         return parentNode;
     }
 
-    function _updateChildrenWithNewParent(
+    function updateChildrenWithNewParent(
         uint256 nodesSlot,
         uint256 newParent,
         uint256 leftChildKey,
         uint256 rightChildKey
     ) internal {
         if (leftChildKey != EMPTY) {
-            Node leftChildNode = _get(nodesSlot, leftChildKey);
+            Node leftChildNode = get(nodesSlot, leftChildKey);
             leftChildNode = leftChildNode.setParent(newParent);
-            _update(nodesSlot, leftChildKey, leftChildNode);
+            update(nodesSlot, leftChildKey, leftChildNode);
         }
         if (rightChildKey != EMPTY) {
-            Node rightChildNode = _get(nodesSlot, rightChildKey);
+            Node rightChildNode = get(nodesSlot, rightChildKey);
             rightChildNode = rightChildNode.setParent(newParent);
-            _update(nodesSlot, rightChildKey, rightChildNode);
+            update(nodesSlot, rightChildKey, rightChildNode);
         }
     }
 
@@ -134,7 +130,7 @@ library MinHeapMapHelper {
      * @dev Swap a child node with its parent node by updating their respective
      * parent and left/right pointers, and update storage
      */
-    function _swap(
+    function swap(
         uint256 nodesSlot,
         uint256 key,
         Node node,
@@ -153,23 +149,23 @@ library MinHeapMapHelper {
 
         grandParentKey = parentNode.parent();
         if (grandParentKey != EMPTY) {
-            _updateGrandParent(nodesSlot, key, grandParentKey, parentKey);
+            updateGrandParent(nodesSlot, key, grandParentKey, parentKey);
         }
-        _updateChildrenWithNewParent(
+        updateChildrenWithNewParent(
             nodesSlot, parentKey, childLeftKey, childRightKey
         );
 
-        node = _updateNodeAndSibling(
+        node = updateNodeAndSibling(
             nodesSlot, key, node, parentKey, parentNode, grandParentKey
         );
-        parentNode = _updateParent(
+        parentNode = updateParent(
             nodesSlot, key, parentKey, parentNode, childLeftKey, childRightKey
         );
 
         return (node, parentNode, grandParentKey);
     }
 
-    function _swapWithRoot(
+    function swapWithRoot(
         uint256 nodesSlot,
         Node rootNode,
         uint256 lastNodeKey,
@@ -183,31 +179,31 @@ library MinHeapMapHelper {
         uint256 rootRightKey = rootNode.right(); // == lastNodeKey ? EMPTY :
             // rootNode.right();
         if (rootLeftKey != EMPTY && rootLeftKey != lastNodeKey) {
-            Node leftNode = _get(nodesSlot, rootLeftKey);
+            Node leftNode = get(nodesSlot, rootLeftKey);
             leftNode = leftNode.setParent(lastNodeKey);
-            _update(nodesSlot, rootLeftKey, leftNode);
+            update(nodesSlot, rootLeftKey, leftNode);
         }
         if (rootRightKey != EMPTY && rootRightKey != lastNodeKey) {
-            Node rightNode = _get(nodesSlot, rootRightKey);
+            Node rightNode = get(nodesSlot, rootRightKey);
             rightNode = rightNode.setParent(lastNodeKey);
-            _update(nodesSlot, rootRightKey, rightNode);
+            update(nodesSlot, rootRightKey, rightNode);
         }
 
         // update last node parent to point to empty
-        Node lastNodeParent = _get(nodesSlot, lastNodeParentKey);
+        Node lastNodeParent = get(nodesSlot, lastNodeParentKey);
         uint256 lastNodeParentLeft = lastNodeParent.left();
         if (lastNodeParentLeft == lastNodeKey) {
             lastNodeParent = lastNodeParent.setLeft(EMPTY);
         } else {
             lastNodeParent = lastNodeParent.setRight(EMPTY);
         }
-        _update(nodesSlot, lastNodeParentKey, lastNodeParent);
+        update(nodesSlot, lastNodeParentKey, lastNodeParent);
 
         uint256 newLeft = rootLeftKey == lastNodeKey ? EMPTY : rootLeftKey;
         uint256 newRight = rootRightKey == lastNodeKey ? EMPTY : rootRightKey;
 
         lastNode = lastNode.setParent(EMPTY).setLeft(newLeft).setRight(newRight);
-        _update(nodesSlot, lastNodeKey, lastNode);
+        update(nodesSlot, lastNodeKey, lastNode);
 
         return lastNode;
     }
@@ -223,7 +219,7 @@ library MinHeapMapHelper {
      * @return newRootKey the key of the new root node
      * @return newRoot the new root node
      */
-    function _pop(uint256 nodesSlot, uint256 rootKey, uint256 lastNodeKey)
+    function pop(uint256 nodesSlot, uint256 rootKey, uint256 lastNodeKey)
         internal
         returns (uint256 oldRootVal, uint256 newRootKey, Node newRoot)
     {
@@ -232,20 +228,20 @@ library MinHeapMapHelper {
         // if the root is not last node (ie popping last element off heap),
         // update heap
         if (rootKey != lastNodeKey) {
-            lastNode = _get(nodesSlot, lastNodeKey);
-            rootNode = _get(nodesSlot, rootKey);
-            lastNode = _swapWithRoot({
+            lastNode = get(nodesSlot, lastNodeKey);
+            rootNode = get(nodesSlot, rootKey);
+            lastNode = swapWithRoot({
                 nodesSlot: nodesSlot,
                 rootNode: rootNode,
                 lastNodeKey: lastNodeKey,
                 lastNode: lastNode
             });
         } else {
-            rootNode = _get(nodesSlot, rootKey);
+            rootNode = get(nodesSlot, rootKey);
             lastNode = Node.wrap(0);
         }
         // delete slot of old root node
-        _update(nodesSlot, rootKey, Node.wrap(0));
+        update(nodesSlot, rootKey, Node.wrap(0));
 
         return (rootNode.value(), lastNodeKey, lastNode);
     }
@@ -259,13 +255,13 @@ library MinHeapMapHelper {
         view
         returns (uint256)
     {
-        Node rootNode = _get(nodesSlot, rootKey);
+        Node rootNode = get(nodesSlot, rootKey);
         // if no right child, root is rightmost
         uint256 rightmostKey = rootKey;
         while (rootNode.right() != EMPTY) {
             // set first to avoid overwriting with EMPTY
             rightmostKey = rootNode.right();
-            rootNode = _get(nodesSlot, rightmostKey);
+            rootNode = get(nodesSlot, rightmostKey);
         }
         return rightmostKey;
     }
@@ -276,11 +272,11 @@ library MinHeapMapHelper {
         returns (uint256)
     {
         uint256 nodesSlot = _nodesSlot(heap);
-        Node rootNode = _get(nodesSlot, heap.metadata.rootKey());
+        Node rootNode = get(nodesSlot, heap.metadata.rootKey());
         uint256 leftmostKey = heap.metadata.rootKey();
         while (rootNode.left() != EMPTY) {
             leftmostKey = rootNode.left();
-            rootNode = _get(nodesSlot, rootNode.left());
+            rootNode = get(nodesSlot, rootNode.left());
         }
         return leftmostKey;
     }
@@ -288,7 +284,7 @@ library MinHeapMapHelper {
     /**
      * @dev Update heap metadata before percolating up after inserting a node
      */
-    function _preInsertUpdateHeapMetadata(
+    function preInsertUpdateHeapMetadata(
         uint256 nodesSlot,
         HeapMetadata metadata,
         uint256 key
@@ -356,14 +352,14 @@ library MinHeapMapHelper {
         uint256 parentKey = node.parent();
         Node parentNode;
         while (parentKey != EMPTY) {
-            parentNode = _get(nodesSlot, parentKey);
+            parentNode = get(nodesSlot, parentKey);
             // if node is less than parent, swap
             if (node.value() < parentNode.value()) {
                 uint256 newParentKey;
                 (node,, newParentKey) =
-                    _swap(nodesSlot, key, node, parentKey, parentNode);
+                    swap(nodesSlot, key, node, parentKey, parentNode);
 
-                metadata = _updateMetadata(metadata, key, parentKey);
+                metadata = updateMetadata(metadata, key, parentKey);
                 // node is now in the place of its parent
                 parentKey = newParentKey;
             } else {
@@ -378,7 +374,7 @@ library MinHeapMapHelper {
     /**
      * @dev Update heap metadata when a key is swapped with its parent.
      */
-    function _updateMetadata(
+    function updateMetadata(
         HeapMetadata metadata,
         uint256 key,
         uint256 parentKey
@@ -422,7 +418,7 @@ library MinHeapMapHelper {
      * Pre-emptively update heap metadata before popping the root, returning the
      * old root key and last node key.
      */
-    function _prePopUpdateMetadata(uint256 nodesSlot, HeapMetadata metadata)
+    function prePopUpdateMetadata(uint256 nodesSlot, HeapMetadata metadata)
         internal
         view
         returns (uint256, uint256, HeapMetadata)
@@ -447,7 +443,7 @@ library MinHeapMapHelper {
         bool poppingLeftChildOfRoot = insertPointer.key() == oldRootKey;
         bool poppingChildOfRoot;
         {
-            Node rootNode = _get(nodesSlot, oldRootKey);
+            Node rootNode = get(nodesSlot, oldRootKey);
             poppingChildOfRoot =
                 poppingLeftChildOfRoot || rootNode.right() == oldLastNodeKey;
         }
@@ -486,7 +482,7 @@ library MinHeapMapHelper {
                 // if the leftmost node has been removed, the new leftmost node
                 // is
                 // the parent of the old leftmost node
-                Node previousLeftmostNode = _get(nodesSlot, leftmostNodeKey);
+                Node previousLeftmostNode = get(nodesSlot, leftmostNodeKey);
                 leftmostNodeKey = previousLeftmostNode.parent();
             } else {
                 // otherwise it's the "previous" node
@@ -542,7 +538,7 @@ library MinHeapMapHelper {
             return PointerType.createPointer(insertPointer.key(), false);
         } else if (allLayersFilled(_size)) {
             uint256 rightmostNodeKey = getRightmostKey(nodesSlot, rootKey);
-            Node rightmostNode = _get(nodesSlot, rightmostNodeKey);
+            Node rightmostNode = get(nodesSlot, rightmostNodeKey);
             return PointerType.createPointer(rightmostNode.parent(), true);
         } else {
             uint256 previousSiblingKey =
@@ -560,7 +556,7 @@ library MinHeapMapHelper {
         view
         returns (Pointer siblingPointer)
     {
-        // Node node = _get(nodesSlot, key);
+        // Node node = get(nodesSlot, key);
         (uint256 ancestorKey, bool isRight) = nextInsertPointer.unpack();
         // uint256 ancestorKey = node.parent();
         require(ancestorKey != EMPTY, "no parent");
@@ -570,7 +566,7 @@ library MinHeapMapHelper {
             return PointerType.createPointer(ancestorKey, true);
         }
         uint256 numAncestors;
-        Node ancestorNode = _get(nodesSlot, ancestorKey);
+        Node ancestorNode = get(nodesSlot, ancestorKey);
         uint256 tempKey;
         while (isRight) {
             // load parent node
@@ -580,7 +576,7 @@ library MinHeapMapHelper {
                 break;
             }
             // require(ancestorKey != EMPTY, "no intermediate parent");
-            ancestorNode = _get(nodesSlot, ancestorKey);
+            ancestorNode = get(nodesSlot, ancestorKey);
             isRight = ancestorNode.right() == tempKey;
             unchecked {
                 ++numAncestors;
@@ -590,7 +586,7 @@ library MinHeapMapHelper {
         // leftmost
         // descendent of the ancestor
         tempKey = ancestorNode.right();
-        Node tempNode = _get(nodesSlot, tempKey);
+        Node tempNode = get(nodesSlot, tempKey);
         /**
          * start at 1 since tempNode is already one child below highest
          * ancestor.
@@ -618,7 +614,7 @@ library MinHeapMapHelper {
         for (uint256 i = 1; i < numAncestors;) {
             tempKey = tempNode.left();
             require(tempKey != EMPTY, "no left child");
-            tempNode = _get(nodesSlot, tempKey);
+            tempNode = get(nodesSlot, tempKey);
             unchecked {
                 ++i;
             }
@@ -636,10 +632,10 @@ library MinHeapMapHelper {
         view
         returns (uint256 siblingKey)
     {
-        Node node = _get(nodesSlot, key);
+        Node node = get(nodesSlot, key);
         uint256 ancestorKey = node.parent();
         require(ancestorKey != EMPTY, "no parent");
-        Node ancestorNode = _get(nodesSlot, ancestorKey);
+        Node ancestorNode = get(nodesSlot, ancestorKey);
         uint256 ancestorLeftChild = ancestorNode.left();
         bool isLeft = ancestorLeftChild == key;
         if (!isLeft) {
@@ -658,7 +654,7 @@ library MinHeapMapHelper {
                 break;
             }
             // require(ancestorKey != EMPTY, "no intermediate parent");
-            ancestorNode = _get(nodesSlot, ancestorKey);
+            ancestorNode = get(nodesSlot, ancestorKey);
             isLeft = ancestorNode.left() == tempKey;
             unchecked {
                 ++numAncestors;
@@ -667,7 +663,7 @@ library MinHeapMapHelper {
         // when isLeft is no longer true, the pointer key will be the key of
         // rightmost descendent of the left child of the ancestor
         tempKey = ancestorNode.left();
-        Node tempNode = _get(nodesSlot, tempKey);
+        Node tempNode = get(nodesSlot, tempKey);
         /**
          * start at 1 since tempNode is already one child below highest
          * ancestor.
@@ -692,7 +688,7 @@ library MinHeapMapHelper {
         for (uint256 i = 0; i < numAncestors;) {
             tempKey = tempNode.right();
             require(tempKey != EMPTY, "no right child");
-            tempNode = _get(nodesSlot, tempKey);
+            tempNode = get(nodesSlot, tempKey);
             unchecked {
                 ++i;
             }
@@ -733,11 +729,11 @@ library MinHeapMapHelper {
         uint256 rightKey = node.right();
 
         while (childKey != EMPTY) {
-            Node child = _get(nodesSlot, childKey);
+            Node child = get(nodesSlot, childKey);
             // check if it has a right child
             if (rightKey != EMPTY) {
                 // if so, retrieve and compare to left child
-                Node rightNode = _get(nodesSlot, rightKey);
+                Node rightNode = get(nodesSlot, rightKey);
                 // whichever is smaller is suitable to be parent of both parent
                 // and sibling (if parent is larger)
                 if (rightNode.value() < child.value()) {
@@ -748,8 +744,8 @@ library MinHeapMapHelper {
 
             // if node val is greater than smallest child, swap
             if (node.value() > child.value()) {
-                (, node,) = _swap(nodesSlot, childKey, child, key, node);
-                metadata = _updateMetadata(metadata, childKey, key);
+                (, node,) = swap(nodesSlot, childKey, child, key, node);
+                metadata = updateMetadata(metadata, childKey, key);
 
                 // if node was swapped, its new children are old children of
                 // child

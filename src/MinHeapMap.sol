@@ -35,7 +35,7 @@ library MinHeapMap {
         internal
     {
         uint256 nodesSlot = Helper._nodesSlot(heap);
-        Node retrieved = Helper._get(nodesSlot, key);
+        Node retrieved = Helper.get(nodesSlot, key);
         HeapMetadata metadata = heap.metadata;
         // node value can be "empty" IF it is also the root (ie, zero value, no
         // children or parent)
@@ -46,13 +46,13 @@ library MinHeapMap {
         uint256 parentKey = insertPointer.key();
 
         if (parentKey != EMPTY) {
-            Node parentNode = Helper._get(nodesSlot, parentKey);
+            Node parentNode = Helper.get(nodesSlot, parentKey);
             if (insertPointer.right()) {
                 parentNode = parentNode.setRight(key);
             } else {
                 parentNode = parentNode.setLeft(key);
             }
-            Helper._update(nodesSlot, parentKey, parentNode);
+            Helper.update(nodesSlot, parentKey, parentNode);
         }
 
         // create node for new value and update it in the nodes mapping
@@ -62,9 +62,9 @@ library MinHeapMap {
             _left: EMPTY,
             _right: EMPTY
         });
-        Helper._update(nodesSlot, key, newNode);
+        Helper.update(nodesSlot, key, newNode);
 
-        metadata = Helper._preInsertUpdateHeapMetadata(nodesSlot, metadata, key);
+        metadata = Helper.preInsertUpdateHeapMetadata(nodesSlot, metadata, key);
 
         // percolate new node up in the heap and store updated heap metadata
         heap.metadata = Helper.percUp(nodesSlot, metadata, key, newNode);
@@ -85,10 +85,10 @@ library MinHeapMap {
         uint256 oldLastNodeKey;
         // pre-emptively update with new root and new lastNode
         (oldRootKey, oldLastNodeKey, metadata) =
-            Helper._prePopUpdateMetadata(nodesSlot, metadata);
+            Helper.prePopUpdateMetadata(nodesSlot, metadata);
         // swap root with last node and delete root node
         (uint256 rootVal, uint256 newRootKey, Node newRoot) =
-            Helper._pop(nodesSlot, oldRootKey, oldLastNodeKey);
+            Helper.pop(nodesSlot, oldRootKey, oldLastNodeKey);
         // percolate new root downwards through tree
         metadata = Helper.percDown(nodesSlot, metadata, newRootKey, newRoot);
         heap.metadata = metadata;
@@ -103,7 +103,7 @@ library MinHeapMap {
         if (metadata.size() == 0) {
             revert MinHeap__Empty();
         }
-        return Helper._get(Helper._nodesSlot(heap), metadata.rootKey()).value();
+        return Helper.get(Helper._nodesSlot(heap), metadata.rootKey()).value();
     }
 
     /**
@@ -114,7 +114,7 @@ library MinHeapMap {
         internal
     {
         uint256 nodesSlot = Helper._nodesSlot(heap);
-        Node node = Helper._get(nodesSlot, key);
+        Node node = Helper.get(nodesSlot, key);
         HeapMetadata metadata = heap.metadata;
         if (Node.unwrap(node) == EMPTY && metadata.rootKey() != key) {
             revert MinHeap__NodeDoesNotExist();
@@ -125,7 +125,7 @@ library MinHeapMap {
         }
         // set new value and update
         node = node.setValue(newValue);
-        Helper._update(nodesSlot, key, node);
+        Helper.update(nodesSlot, key, node);
 
         // if new value is less than old value, percolate up to satisfy minHeap
         // properties

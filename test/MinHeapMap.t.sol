@@ -86,16 +86,16 @@ contract MinHeapMapTest is BaseTest {
 
     function testUpdateAndGet(uint256 key, uint256 toWrap) public {
         key = bound(key, 1, type(uint32).max);
-        Helper._update(nodesSlot, key, Node.wrap(toWrap));
-        assertEq(Node.unwrap(Helper._get(nodesSlot, key)), toWrap);
+        Helper.update(nodesSlot, key, Node.wrap(toWrap));
+        assertEq(Node.unwrap(Helper.get(nodesSlot, key)), toWrap);
         assertEq(Node.unwrap(heap.nodes[key]), toWrap);
     }
 
     function testUpdateAndGet() public {
         uint256 key = 69;
         uint256 toWrap = 420;
-        Helper._update(nodesSlot, key, Node.wrap(toWrap));
-        assertEq(Node.unwrap(Helper._get(nodesSlot, key)), toWrap);
+        Helper.update(nodesSlot, key, Node.wrap(toWrap));
+        assertEq(Node.unwrap(Helper.get(nodesSlot, key)), toWrap);
         assertEq(Node.unwrap(heap.nodes[key]), toWrap);
     }
 
@@ -107,7 +107,7 @@ contract MinHeapMapTest is BaseTest {
             _right: 0,
             _parent: 0
         });
-        Helper._update(nodesSlot, 1, rootNode);
+        Helper.update(nodesSlot, 1, rootNode);
         HeapMetadata metadata = HeapMetadataType.createHeapMetadata({
             _rootKey: 1,
             _size: 1,
@@ -127,7 +127,7 @@ contract MinHeapMapTest is BaseTest {
             _right: 0,
             _parent: 0
         });
-        Helper._update(nodesSlot, key, rootNode);
+        Helper.update(nodesSlot, key, rootNode);
         HeapMetadata metadata = HeapMetadataType.createHeapMetadata({
             _rootKey: key,
             _size: 1,
@@ -967,7 +967,7 @@ contract MinHeapMapTest is BaseTest {
         for (uint256 i = rootKey; i < _heap.metadata.size() + rootKey; i++) {
             emit NodeLog(
                 uint8(i - rootKey + 101),
-                bytes32(Node.unwrap(Helper._get(_nodesSlot, i)))
+                bytes32(Node.unwrap(Helper.get(_nodesSlot, i)))
                 );
         }
         emit Space();
