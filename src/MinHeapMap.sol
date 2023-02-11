@@ -16,7 +16,7 @@ library MinHeapMap {
     error MinHeap__NodeExists();
 
     /**
-     * @dev get the size of a heap
+     * @notice get the size of a heap
      */
     function size(Heap storage heap) internal returns (uint256 _size) {
         HeapMetadata metadata;
@@ -27,7 +27,8 @@ library MinHeapMap {
     }
 
     /**
-     * @dev Wrap a value into a node and insert it into the last position of the
+     * @notice Wrap a value into a node and insert it into the last position of
+     * the
      * heap, then percolate the node up until heap properties are satisfied.
      */
     function insert(Heap storage heap, uint256 key, uint256 nodeValue)
@@ -70,7 +71,9 @@ library MinHeapMap {
     }
 
     /**
-     * @notice Remove the root node and return its value.
+     * @notice Remove the root node and return its value. Replaces root node
+     * with last node and then percolates the new root node down until heap
+     * properties are satisfied.
      */
     function pop(Heap storage heap) internal returns (uint256) {
         HeapMetadata metadata = heap.metadata;
@@ -103,6 +106,10 @@ library MinHeapMap {
         return Helper._get(Helper._nodesSlot(heap), metadata.rootKey()).value();
     }
 
+    /**
+     * @notice Update the value of a node in the heap and percolate changes up
+     * or down until heap properties are satisfied.
+     */
     function update(Heap storage heap, uint256 key, uint256 newValue)
         internal
     {
