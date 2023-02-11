@@ -11,7 +11,11 @@ library MinHeapMapHelper {
     /**
      * @dev Read the node for a given key
      */
-    function _get(uint256 slot, uint256 key) internal returns (Node node) {
+    function _get(uint256 slot, uint256 key)
+        internal
+        view
+        returns (Node node)
+    {
         // emit Get(key);
         // require(key != EMPTY, "empty");
         assembly {
@@ -252,6 +256,7 @@ library MinHeapMapHelper {
      */
     function getRightmostKey(uint256 nodesSlot, uint256 rootKey)
         internal
+        view
         returns (uint256)
     {
         Node rootNode = _get(nodesSlot, rootKey);
@@ -265,7 +270,11 @@ library MinHeapMapHelper {
         return rightmostKey;
     }
 
-    function getLeftmostKey(Heap storage heap) internal returns (uint256) {
+    function getLeftmostKey(Heap storage heap)
+        internal
+        view
+        returns (uint256)
+    {
         uint256 nodesSlot = _nodesSlot(heap);
         Node rootNode = _get(nodesSlot, heap.metadata.rootKey());
         uint256 leftmostKey = heap.metadata.rootKey();
@@ -283,7 +292,7 @@ library MinHeapMapHelper {
         uint256 nodesSlot,
         HeapMetadata metadata,
         uint256 key
-    ) internal returns (HeapMetadata) {
+    ) internal view returns (HeapMetadata) {
         (
             uint256 root,
             uint256 _size,
@@ -415,6 +424,7 @@ library MinHeapMapHelper {
      */
     function _prePopUpdateMetadata(uint256 nodesSlot, HeapMetadata metadata)
         internal
+        view
         returns (uint256, uint256, HeapMetadata)
     {
         (
@@ -509,7 +519,7 @@ library MinHeapMapHelper {
         uint256 _size,
         uint256 leftmostNodeKey,
         Pointer insertPointer
-    ) internal returns (Pointer pointer) {
+    ) internal view returns (Pointer pointer) {
         if (allLayersFilled(_size)) {
             // if all layers are filled, we need to add a new layer
             // and add the new node to the leftmost position
@@ -527,7 +537,7 @@ library MinHeapMapHelper {
         uint256 _size,
         uint256 rootKey,
         Pointer insertPointer
-    ) internal returns (Pointer pointer) {
+    ) internal view returns (Pointer pointer) {
         if (insertPointer.right()) {
             return PointerType.createPointer(insertPointer.key(), false);
         } else if (allLayersFilled(_size)) {
@@ -547,6 +557,7 @@ library MinHeapMapHelper {
      */
     function getNextSiblingPointer(uint256 nodesSlot, Pointer nextInsertPointer)
         internal
+        view
         returns (Pointer siblingPointer)
     {
         // Node node = _get(nodesSlot, key);
@@ -622,6 +633,7 @@ library MinHeapMapHelper {
      */
     function getPreviousSiblingKey(uint256 nodesSlot, uint256 key)
         internal
+        view
         returns (uint256 siblingKey)
     {
         Node node = _get(nodesSlot, key);

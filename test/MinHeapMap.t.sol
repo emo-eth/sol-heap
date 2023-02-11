@@ -460,7 +460,6 @@ contract MinHeapMapTest is BaseTest {
             Pointer.unwrap(PointerType.createPointer(3, false)),
             "wrong insertPointer"
         );
-        address(0).call("");
 
         val = heap.pop();
         logHeap(heap);
@@ -877,7 +876,6 @@ contract MinHeapMapTest is BaseTest {
             Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 5, _right: true}))
         );
-        address(0).call("");
         heap.insert(11, 11);
 
         assertEq(

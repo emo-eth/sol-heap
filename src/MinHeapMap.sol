@@ -18,7 +18,7 @@ library MinHeapMap {
     /**
      * @notice get the size of a heap
      */
-    function size(Heap storage heap) internal returns (uint256 _size) {
+    function size(Heap storage heap) internal view returns (uint256 _size) {
         HeapMetadata metadata;
         assembly {
             metadata := sload(add(heap.slot, 1))
@@ -98,7 +98,7 @@ library MinHeapMap {
     /**
      * @notice Get the value of the root node without removing it.
      */
-    function peek(Heap storage heap) internal returns (uint256) {
+    function peek(Heap storage heap) internal view returns (uint256) {
         HeapMetadata metadata = heap.metadata;
         if (metadata.size() == 0) {
             revert MinHeap__Empty();
