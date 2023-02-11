@@ -13,5 +13,5 @@ struct Heap {
     ///@dev A packed UDT containing root key, heap size, leftmost node key,
     /// last node key, and a Pointer UDT where the next node should be
     /// inserted
-    HeapMetadata heapMetadata;
+    HeapMetadata metadata;
 }

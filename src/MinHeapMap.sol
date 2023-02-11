@@ -9,19 +9,21 @@ import { EMPTY } from "./lib/Constants.sol";
 import { MinHeapMapHelper as Helper } from "./lib/MinheapMapHelper.sol";
 
 library MinHeapMap {
+    using MinHeapMap for Heap;
+
     error MinHeap__Empty();
-    error MinHeap__NotEmpty();
+    error MinHeap__NodeDoesNotExist();
     error MinHeap__NodeExists();
 
     /**
      * @dev get the size of a heap
      */
     function size(Heap storage heap) internal returns (uint256 _size) {
-        HeapMetadata heapMetadata;
+        HeapMetadata metadata;
         assembly {
-            heapMetadata := sload(add(heap.slot, 1))
+            metadata := sload(add(heap.slot, 1))
         }
-        _size = heapMetadata.size();
+        _size = metadata.size();
     }
 
     /**
@@ -33,13 +35,13 @@ library MinHeapMap {
     {
         uint256 nodesSlot = Helper._nodesSlot(heap);
         Node retrieved = Helper._get(nodesSlot, key);
-        HeapMetadata heapMetadata = heap.heapMetadata;
+        HeapMetadata metadata = heap.metadata;
         // node value can be "empty" IF it is also the root (ie, zero value, no
         // children or parent)
-        if (Node.unwrap(retrieved) != EMPTY || heapMetadata.rootKey() == key) {
+        if (Node.unwrap(retrieved) != EMPTY || metadata.rootKey() == key) {
             revert MinHeap__NodeExists();
         }
-        Pointer insertPointer = heapMetadata.insertPointer();
+        Pointer insertPointer = metadata.insertPointer();
         uint256 parentKey = insertPointer.key();
 
         if (parentKey != EMPTY) {
@@ -61,28 +63,32 @@ library MinHeapMap {
         });
         Helper._update(nodesSlot, key, newNode);
 
-        heapMetadata =
-            Helper._preInsertUpdateHeapMetadata(nodesSlot, heapMetadata, key);
+        metadata = Helper._preInsertUpdateHeapMetadata(nodesSlot, metadata, key);
 
         // percolate new node up in the heap and store updated heap metadata
-        heap.heapMetadata = Helper.percUp(nodesSlot, heapMetadata, key, newNode);
+        heap.metadata = Helper.percUp(nodesSlot, metadata, key, newNode);
     }
 
     /**
      * @notice Remove the root node and return its value.
      */
     function pop(Heap storage heap) internal returns (uint256) {
+        HeapMetadata metadata = heap.metadata;
+        if (metadata.size() == 0) {
+            revert MinHeap__Empty();
+        }
         uint256 nodesSlot = Helper._nodesSlot(heap);
+        uint256 oldRootKey;
+        uint256 oldLastNodeKey;
         // pre-emptively update with new root and new lastNode
-        (uint256 oldRootKey, uint256 oldLastNodeKey, HeapMetadata heapMetadata)
-        = Helper._prePopUpdateMetadata(nodesSlot, heap.heapMetadata);
+        (oldRootKey, oldLastNodeKey, metadata) =
+            Helper._prePopUpdateMetadata(nodesSlot, metadata);
         // swap root with last node and delete root node
         (uint256 rootVal, uint256 newRootKey, Node newRoot) =
             Helper._pop(nodesSlot, oldRootKey, oldLastNodeKey);
         // percolate new root downwards through tree
-        heapMetadata =
-            Helper.percDown(nodesSlot, heapMetadata, newRootKey, newRoot);
-        heap.heapMetadata = heapMetadata;
+        metadata = Helper.percDown(nodesSlot, metadata, newRootKey, newRoot);
+        heap.metadata = metadata;
         return rootVal;
     }
 
@@ -90,12 +96,11 @@ library MinHeapMap {
      * @notice Get the value of the root node without removing it.
      */
     function peek(Heap storage heap) internal returns (uint256) {
-        // uint256 rootKey = heap.heapMetadata.rootKey();
-        // if (rootKey == EMPTY) {
-        //     revert("no root");
-        // }
-        return Helper._get(Helper._nodesSlot(heap), heap.heapMetadata.rootKey())
-            .value();
+        HeapMetadata metadata = heap.metadata;
+        if (metadata.size() == 0) {
+            revert MinHeap__Empty();
+        }
+        return Helper._get(Helper._nodesSlot(heap), metadata.rootKey()).value();
     }
 
     function update(Heap storage heap, uint256 key, uint256 newValue)
@@ -103,23 +108,25 @@ library MinHeapMap {
     {
         uint256 nodesSlot = Helper._nodesSlot(heap);
         Node node = Helper._get(nodesSlot, key);
+        HeapMetadata metadata = heap.metadata;
+        if (Node.unwrap(node) == EMPTY && metadata.rootKey() != key) {
+            revert MinHeap__NodeDoesNotExist();
+        }
         uint256 oldValue = node.value();
         if (newValue == oldValue) {
             return;
         }
         // set new value and update
         node = node.setValue(newValue);
-        // todo: write first?
         Helper._update(nodesSlot, key, node);
+
         // if new value is less than old value, percolate up to satisfy minHeap
         // properties
         if (newValue < oldValue) {
-            heap.heapMetadata =
-                Helper.percUp(nodesSlot, heap.heapMetadata, key, node);
+            heap.metadata = Helper.percUp(nodesSlot, metadata, key, node);
         } else {
             // else percolateDown to satisfy minHeap properties
-            heap.heapMetadata =
-                Helper.percDown(nodesSlot, heap.heapMetadata, key, node);
+            heap.metadata = Helper.percDown(nodesSlot, metadata, key, node);
         }
     }
 }

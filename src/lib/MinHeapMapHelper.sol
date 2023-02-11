@@ -267,8 +267,8 @@ library MinHeapMapHelper {
 
     function getLeftmostKey(Heap storage heap) internal returns (uint256) {
         uint256 nodesSlot = _nodesSlot(heap);
-        Node rootNode = _get(nodesSlot, heap.heapMetadata.rootKey());
-        uint256 leftmostKey = heap.heapMetadata.rootKey();
+        Node rootNode = _get(nodesSlot, heap.metadata.rootKey());
+        uint256 leftmostKey = heap.metadata.rootKey();
         while (rootNode.left() != EMPTY) {
             leftmostKey = rootNode.left();
             rootNode = _get(nodesSlot, rootNode.left());
@@ -281,7 +281,7 @@ library MinHeapMapHelper {
      */
     function _preInsertUpdateHeapMetadata(
         uint256 nodesSlot,
-        HeapMetadata heapMetadata,
+        HeapMetadata metadata,
         uint256 key
     ) internal returns (HeapMetadata) {
         (
@@ -290,7 +290,7 @@ library MinHeapMapHelper {
             uint256 leftmostNodeKey,
             ,
             Pointer insertPointer
-        ) = heapMetadata.unpack();
+        ) = metadata.unpack();
 
         if (_size == 0) {
             return HeapMetadataType.createHeapMetadata({
@@ -324,7 +324,7 @@ library MinHeapMapHelper {
             nodesSlot, _size, leftmostNodeKey, insertPointer
         );
 
-        heapMetadata = HeapMetadataType.createHeapMetadata({
+        metadata = HeapMetadataType.createHeapMetadata({
             _rootKey: root,
             _size: _size,
             _leftmostNodeKey: leftmostNodeKey,
@@ -332,7 +332,7 @@ library MinHeapMapHelper {
             _insertPointer: insertPointer
         });
 
-        return heapMetadata;
+        return metadata;
     }
 
     /**
@@ -340,7 +340,7 @@ library MinHeapMapHelper {
      */
     function percUp(
         uint256 nodesSlot,
-        HeapMetadata heapMetadata,
+        HeapMetadata metadata,
         uint256 key,
         Node node
     ) internal returns (HeapMetadata) {
@@ -354,7 +354,7 @@ library MinHeapMapHelper {
                 (node,, newParentKey) =
                     _swap(nodesSlot, key, node, parentKey, parentNode);
 
-                heapMetadata = _updateMetadata(heapMetadata, key, parentKey);
+                metadata = _updateMetadata(metadata, key, parentKey);
                 // node is now in the place of its parent
                 parentKey = newParentKey;
             } else {
@@ -363,14 +363,14 @@ library MinHeapMapHelper {
                 break;
             }
         }
-        return heapMetadata;
+        return metadata;
     }
 
     /**
      * @dev Update heap metadata when a key is swapped with its parent.
      */
     function _updateMetadata(
-        HeapMetadata heapMetadata,
+        HeapMetadata metadata,
         uint256 key,
         uint256 parentKey
     ) internal pure returns (HeapMetadata) {
@@ -381,40 +381,39 @@ library MinHeapMapHelper {
             uint256 leftmostNodeKey,
             uint256 lastNodeKey,
             Pointer insertPointer
-        ) = heapMetadata.unpack();
+        ) = metadata.unpack();
         if (parentKey == rootKey) {
-            heapMetadata = heapMetadata.setRootKey(key);
+            metadata = metadata.setRootKey(key);
         }
         // update leftmost pointer if necessary
         if (key == leftmostNodeKey) {
-            heapMetadata = heapMetadata.setLeftmostNodeKey(parentKey);
+            metadata = metadata.setLeftmostNodeKey(parentKey);
         }
         // update last node pointer if necessary
         if (key == lastNodeKey) {
-            heapMetadata = heapMetadata.setLastNodeKey(parentKey);
+            metadata = metadata.setLastNodeKey(parentKey);
         }
         if (key == insertPointer.key()) {
             // TODO: assume insertPointer has been udpated at this
             // point, ie, it knows if right leaf is full
-            heapMetadata = heapMetadata.setInsertPointer(
+            metadata = metadata.setInsertPointer(
                 PointerType.createPointer(parentKey, insertPointer.right())
             );
         } else if (parentKey == insertPointer.key()) {
             // i think we can always assume that if swapping with a
             // parent that used to be insert pointer then only the right
             // child is free
-            heapMetadata = heapMetadata.setInsertPointer(
-                PointerType.createPointer(key, true)
-            );
+            metadata =
+                metadata.setInsertPointer(PointerType.createPointer(key, true));
         }
-        return heapMetadata;
+        return metadata;
     }
 
     /**
      * Pre-emptively update heap metadata before popping the root, returning the
      * old root key and last node key.
      */
-    function _prePopUpdateMetadata(uint256 nodesSlot, HeapMetadata heapMetadata)
+    function _prePopUpdateMetadata(uint256 nodesSlot, HeapMetadata metadata)
         internal
         returns (uint256, uint256, HeapMetadata)
     {
@@ -424,7 +423,7 @@ library MinHeapMapHelper {
             uint256 leftmostNodeKey,
             uint256 oldLastNodeKey,
             Pointer insertPointer
-        ) = heapMetadata.unpack();
+        ) = metadata.unpack();
 
         // uint256 rootKey = originalRootKey;
         // uint256 lastNodeKey = originalLastNodeKey;
@@ -490,7 +489,7 @@ library MinHeapMapHelper {
             _size = _size - 1;
         }
 
-        heapMetadata = HeapMetadataType.createHeapMetadata({
+        metadata = HeapMetadataType.createHeapMetadata({
             _rootKey: oldLastNodeKey,
             _size: _size,
             _leftmostNodeKey: leftmostNodeKey,
@@ -498,7 +497,7 @@ library MinHeapMapHelper {
             _insertPointer: insertPointer
         });
 
-        return (oldRootKey, oldLastNodeKey, heapMetadata);
+        return (oldRootKey, oldLastNodeKey, metadata);
     }
 
     /**
@@ -713,7 +712,7 @@ library MinHeapMapHelper {
      */
     function percDown(
         uint256 nodesSlot,
-        HeapMetadata heapMetadata,
+        HeapMetadata metadata,
         uint256 key,
         Node node
     ) internal returns (HeapMetadata) {
@@ -738,7 +737,7 @@ library MinHeapMapHelper {
             // if node val is greater than smallest child, swap
             if (node.value() > child.value()) {
                 (, node,) = _swap(nodesSlot, childKey, child, key, node);
-                heapMetadata = _updateMetadata(heapMetadata, childKey, key);
+                metadata = _updateMetadata(metadata, childKey, key);
 
                 // if node was swapped, its new children are old children of
                 // child
@@ -750,7 +749,7 @@ library MinHeapMapHelper {
                 break;
             }
         }
-        return heapMetadata;
+        return metadata;
     }
 
     function _nodesSlot(Heap storage heap) internal pure returns (uint256) {

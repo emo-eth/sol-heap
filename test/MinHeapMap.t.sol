@@ -34,21 +34,21 @@ contract MinHeapMapTest is BaseTest {
     function testRealUpdate() public {
         preFilled.update(69, 0);
         assertEq(preFilled.peek(), 0, "wrong peek");
-        assertEq(preFilled.heapMetadata.rootKey(), 69, "wrong root key");
+        assertEq(preFilled.metadata.rootKey(), 69, "wrong root key");
     }
 
     function testRealUpdate(uint256 key) public {
         key = bound(key, 1, 257);
         preFilled.update(key, 0);
         assertEq(preFilled.peek(), 0, "wrong peek");
-        assertEq(preFilled.heapMetadata.rootKey(), key, "wrong root key");
+        assertEq(preFilled.metadata.rootKey(), key, "wrong root key");
     }
 
     function testUpdateBigger() public {
         preFilled.update(1, 999);
         assertEq(preFilled.peek(), 2, "wrong peek");
-        assertEq(preFilled.heapMetadata.rootKey(), 2, "wrong root");
-        assertEq(preFilled.heapMetadata.leftmostNodeKey(), 1, "wrong leftmost");
+        assertEq(preFilled.metadata.rootKey(), 2, "wrong root");
+        assertEq(preFilled.metadata.leftmostNodeKey(), 1, "wrong leftmost");
         preFilled.update(2, 1000);
         preFilled.update(3, 1001);
 
@@ -108,14 +108,14 @@ contract MinHeapMapTest is BaseTest {
             _parent: 0
         });
         Helper._update(nodesSlot, 1, rootNode);
-        HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
+        HeapMetadata metadata = HeapMetadataType.createHeapMetadata({
             _rootKey: 1,
             _size: 1,
             _lastNodeKey: 1,
             _leftmostNodeKey: 1,
             _insertPointer: PointerType.createPointer(1, false)
         });
-        heap.heapMetadata = heapMetadata;
+        heap.metadata = metadata;
         assertEq(heap.peek(), value);
     }
 
@@ -128,14 +128,14 @@ contract MinHeapMapTest is BaseTest {
             _parent: 0
         });
         Helper._update(nodesSlot, key, rootNode);
-        HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
+        HeapMetadata metadata = HeapMetadataType.createHeapMetadata({
             _rootKey: key,
             _size: 1,
             _lastNodeKey: key,
             _leftmostNodeKey: key,
             _insertPointer: PointerType.createPointer(key, false)
         });
-        heap.heapMetadata = heapMetadata;
+        heap.metadata = metadata;
         assertEq(heap.peek(), value);
     }
 
@@ -148,7 +148,7 @@ contract MinHeapMapTest is BaseTest {
             uint256 lastNodeKey,
             uint256 leftmostNodeKey,
             Pointer insertPointer
-        ) = HeapMetadataType.unpack(heap.heapMetadata);
+        ) = HeapMetadataType.unpack(heap.metadata);
         assertEq(root, 42, "root incorrect");
         assertEq(size, 1, "size incorrect");
         assertEq(lastNodeKey, 42, "lastNodeKey incorrect");
@@ -158,7 +158,7 @@ contract MinHeapMapTest is BaseTest {
         uint256 value = heap.pop();
         assertEq(value, 69, "popped value incorrect");
         (root, size, lastNodeKey, leftmostNodeKey, insertPointer) =
-            HeapMetadataType.unpack(heap.heapMetadata);
+            HeapMetadataType.unpack(heap.metadata);
         assertEq(root, 0, "new root incorrect");
         assertEq(size, 0, "new size incorrect");
         assertEq(lastNodeKey, 0, "new lastNodeKey incorrect");
@@ -178,7 +178,7 @@ contract MinHeapMapTest is BaseTest {
             uint256 lastNodeKey,
             uint256 leftmostNodeKey,
             Pointer insertPointer
-        ) = HeapMetadataType.unpack(heap.heapMetadata);
+        ) = HeapMetadataType.unpack(heap.metadata);
         assertEq(root, 42, "root incorrect");
         assertEq(size, 2, "size incorrect");
         assertEq(lastNodeKey, 43, "lastNodeKey incorrect");
@@ -198,7 +198,7 @@ contract MinHeapMapTest is BaseTest {
             assertEq(i, heap.size(), "wrong size");
             assertEq(
                 heap.getLeftmostKey(), // "actual"
-                heap.heapMetadata.leftmostNodeKey(), // "expected"
+                heap.metadata.leftmostNodeKey(), // "expected"
                 "wrong leftmost"
             );
         }
@@ -209,7 +209,7 @@ contract MinHeapMapTest is BaseTest {
             heap.insert(i, i);
             assertEq(i, heap.peek());
             assertEq(i, heap.size());
-            assertEq(heap.getLeftmostKey(), heap.heapMetadata.leftmostNodeKey());
+            assertEq(heap.getLeftmostKey(), heap.metadata.leftmostNodeKey());
         }
     }
 
@@ -220,12 +220,12 @@ contract MinHeapMapTest is BaseTest {
     function testOneProperties() public {
         heap.insert(1, 1);
         assertEq(heap.peek(), 1, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 1);
-        assertEq(heap.heapMetadata.size(), 1);
-        assertEq(heap.heapMetadata.lastNodeKey(), 1);
-        assertEq(heap.heapMetadata.leftmostNodeKey(), 1);
+        assertEq(heap.metadata.rootKey(), 1);
+        assertEq(heap.metadata.size(), 1);
+        assertEq(heap.metadata.lastNodeKey(), 1);
+        assertEq(heap.metadata.leftmostNodeKey(), 1);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(1, false))
         );
     }
@@ -234,26 +234,24 @@ contract MinHeapMapTest is BaseTest {
         heap.insert(1, 1);
         heap.insert(2, 2);
         assertEq(heap.peek(), 1, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 1);
-        assertEq(heap.heapMetadata.size(), 2);
-        assertEq(heap.heapMetadata.lastNodeKey(), 2);
-        assertEq(heap.heapMetadata.leftmostNodeKey(), 2);
+        assertEq(heap.metadata.rootKey(), 1);
+        assertEq(heap.metadata.size(), 2);
+        assertEq(heap.metadata.lastNodeKey(), 2);
+        assertEq(heap.metadata.leftmostNodeKey(), 2);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(1, true))
         );
 
         uint256 val = heap.pop();
         assertEq(val, 1, "wrong pop");
         assertEq(heap.peek(), 2, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 2, "wrong root");
-        assertEq(heap.heapMetadata.size(), 1, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 2, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 2, "wrong root");
+        assertEq(heap.metadata.size(), 1, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 2, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 2, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 2, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(2, false)),
             "wrong insertPointer"
         );
@@ -264,26 +262,24 @@ contract MinHeapMapTest is BaseTest {
         heap.insert(2, 2);
         heap.insert(3, 3);
         assertEq(heap.peek(), 1, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 1);
-        assertEq(heap.heapMetadata.size(), 3);
-        assertEq(heap.heapMetadata.lastNodeKey(), 3);
-        assertEq(heap.heapMetadata.leftmostNodeKey(), 2);
+        assertEq(heap.metadata.rootKey(), 1);
+        assertEq(heap.metadata.size(), 3);
+        assertEq(heap.metadata.lastNodeKey(), 3);
+        assertEq(heap.metadata.leftmostNodeKey(), 2);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(2, false))
         );
 
         uint256 val = heap.pop();
         assertEq(val, 1, "wrong pop");
         assertEq(heap.peek(), 2, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 2, "wrong root");
-        assertEq(heap.heapMetadata.size(), 2, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 3, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 2, "wrong root");
+        assertEq(heap.metadata.size(), 2, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 3, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 3, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 3, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(2, true)),
             "wrong insertPointer"
         );
@@ -291,14 +287,12 @@ contract MinHeapMapTest is BaseTest {
         val = heap.pop();
         assertEq(val, 2, "wrong pop");
         assertEq(heap.peek(), 3, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 3, "wrong root");
-        assertEq(heap.heapMetadata.size(), 1, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 3, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 3, "wrong root");
+        assertEq(heap.metadata.size(), 1, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 3, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 3, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 3, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(3, false)),
             "wrong insertPointer"
         );
@@ -311,26 +305,24 @@ contract MinHeapMapTest is BaseTest {
         heap.insert(4, 4);
 
         assertEq(heap.peek(), 1, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 1);
-        assertEq(heap.heapMetadata.size(), 4);
-        assertEq(heap.heapMetadata.lastNodeKey(), 4);
-        assertEq(heap.heapMetadata.leftmostNodeKey(), 4);
+        assertEq(heap.metadata.rootKey(), 1);
+        assertEq(heap.metadata.size(), 4);
+        assertEq(heap.metadata.lastNodeKey(), 4);
+        assertEq(heap.metadata.leftmostNodeKey(), 4);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(2, true))
         );
 
         uint256 val = heap.pop();
         assertEq(val, 1, "wrong pop");
         assertEq(heap.peek(), 2, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 2, "wrong root");
-        assertEq(heap.heapMetadata.size(), 3, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 3, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 2, "wrong root");
+        assertEq(heap.metadata.size(), 3, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 3, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(4, false)),
             "wrong insertPointer"
         );
@@ -338,14 +330,12 @@ contract MinHeapMapTest is BaseTest {
         val = heap.pop();
         require(val == 2, "wrong pop");
         require(heap.peek() == 3, "wrong peek");
-        require(heap.heapMetadata.rootKey() == 3, "wrong root");
-        require(heap.heapMetadata.size() == 2, "wrong size");
-        require(heap.heapMetadata.lastNodeKey() == 4, "wrong lastNodeKey");
+        require(heap.metadata.rootKey() == 3, "wrong root");
+        require(heap.metadata.size() == 2, "wrong size");
+        require(heap.metadata.lastNodeKey() == 4, "wrong lastNodeKey");
+        require(heap.metadata.leftmostNodeKey() == 4, "wrong leftmostNodeKey");
         require(
-            heap.heapMetadata.leftmostNodeKey() == 4, "wrong leftmostNodeKey"
-        );
-        require(
-            Pointer.unwrap(heap.heapMetadata.insertPointer())
+            Pointer.unwrap(heap.metadata.insertPointer())
                 == Pointer.unwrap(PointerType.createPointer(3, true)),
             "wrong insertPointer"
         );
@@ -353,14 +343,12 @@ contract MinHeapMapTest is BaseTest {
         val = heap.pop();
         require(val == 3, "wrong pop");
         require(heap.peek() == 4, "wrong peek");
-        require(heap.heapMetadata.rootKey() == 4, "wrong root");
-        require(heap.heapMetadata.size() == 1, "wrong size");
-        require(heap.heapMetadata.lastNodeKey() == 4, "wrong lastNodeKey");
+        require(heap.metadata.rootKey() == 4, "wrong root");
+        require(heap.metadata.size() == 1, "wrong size");
+        require(heap.metadata.lastNodeKey() == 4, "wrong lastNodeKey");
+        require(heap.metadata.leftmostNodeKey() == 4, "wrong leftmostNodeKey");
         require(
-            heap.heapMetadata.leftmostNodeKey() == 4, "wrong leftmostNodeKey"
-        );
-        require(
-            Pointer.unwrap(heap.heapMetadata.insertPointer())
+            Pointer.unwrap(heap.metadata.insertPointer())
                 == Pointer.unwrap(PointerType.createPointer(4, false)),
             "wrong insertPointer"
         );
@@ -374,14 +362,12 @@ contract MinHeapMapTest is BaseTest {
         heap.insert(5, 5);
 
         assertEq(heap.peek(), 1, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 1, "wrong root");
-        assertEq(heap.heapMetadata.size(), 5, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 1, "wrong root");
+        assertEq(heap.metadata.size(), 5, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(3, false)),
             "wrong insertPointer"
         );
@@ -389,14 +375,12 @@ contract MinHeapMapTest is BaseTest {
         uint256 val = heap.pop();
         assertEq(val, 1, "wrong pop");
         assertEq(heap.peek(), 2, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 2, "wrong root");
-        assertEq(heap.heapMetadata.size(), 4, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 2, "wrong root");
+        assertEq(heap.metadata.size(), 4, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 5, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 5, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(4, true)),
             "wrong insertPointer"
         );
@@ -405,14 +389,12 @@ contract MinHeapMapTest is BaseTest {
         // revert();
         assertEq(val, 2, "wrong pop");
         assertEq(heap.peek(), 3, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 3, "wrong root");
-        assertEq(heap.heapMetadata.size(), 3, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 3, "wrong root");
+        assertEq(heap.metadata.size(), 3, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(4, false)),
             "wrong insertPointer"
         );
@@ -420,14 +402,12 @@ contract MinHeapMapTest is BaseTest {
         val = heap.pop();
         assertEq(val, 3, "wrong pop");
         assertEq(heap.peek(), 4, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 4, "wrong root");
-        assertEq(heap.heapMetadata.size(), 2, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 4, "wrong root");
+        assertEq(heap.metadata.size(), 2, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 5, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 5, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(4, true)),
             "wrong insertPointer"
         );
@@ -435,14 +415,12 @@ contract MinHeapMapTest is BaseTest {
         val = heap.pop();
         assertEq(val, 4, "wrong pop");
         assertEq(heap.peek(), 5, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 5, "wrong root");
-        assertEq(heap.heapMetadata.size(), 1, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 5, "wrong root");
+        assertEq(heap.metadata.size(), 1, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 5, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 5, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(5, false)),
             "wrong insertPointer"
         );
@@ -457,14 +435,12 @@ contract MinHeapMapTest is BaseTest {
         heap.insert(6, 6);
         logHeap(heap);
         assertEq(heap.peek(), 1, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 1, "wrong root");
-        assertEq(heap.heapMetadata.size(), 6, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 6, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 1, "wrong root");
+        assertEq(heap.metadata.size(), 6, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 6, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(3, true)),
             "wrong insertPointer"
         );
@@ -475,14 +451,12 @@ contract MinHeapMapTest is BaseTest {
         // revert();
         assertEq(val, 1, "wrong pop");
         assertEq(heap.peek(), 2, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 2, "wrong root");
-        assertEq(heap.heapMetadata.size(), 5, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 2, "wrong root");
+        assertEq(heap.metadata.size(), 5, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 6, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 6, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(3, false)),
             "wrong insertPointer"
         );
@@ -493,14 +467,12 @@ contract MinHeapMapTest is BaseTest {
         // revert();
         assertEq(val, 2, "wrong pop");
         assertEq(heap.peek(), 3, "wrong peek");
-        assertEq(heap.heapMetadata.rootKey(), 3, "wrong root");
-        assertEq(heap.heapMetadata.size(), 4, "wrong size");
-        assertEq(heap.heapMetadata.lastNodeKey(), 6, "wrong lastNodeKey");
+        assertEq(heap.metadata.rootKey(), 3, "wrong root");
+        assertEq(heap.metadata.size(), 4, "wrong size");
+        assertEq(heap.metadata.lastNodeKey(), 6, "wrong lastNodeKey");
+        assertEq(heap.metadata.leftmostNodeKey(), 6, "wrong leftmostNodeKey");
         assertEq(
-            heap.heapMetadata.leftmostNodeKey(), 6, "wrong leftmostNodeKey"
-        );
-        assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(4, true)),
             "wrong insertPointer"
         );
@@ -857,87 +829,87 @@ contract MinHeapMapTest is BaseTest {
     function testInsertSixteen() public {
         heap.insert(1, 1);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 1, _right: false}))
         );
         heap.insert(2, 2);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 1, _right: true}))
         );
         heap.insert(3, 3);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 2, _right: false}))
         );
         heap.insert(4, 4);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 2, _right: true}))
         );
         heap.insert(5, 5);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 3, _right: false}))
         );
         heap.insert(6, 6);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 3, _right: true}))
         );
         heap.insert(7, 7);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 4, _right: false}))
         );
         heap.insert(8, 8);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 4, _right: true}))
         );
         heap.insert(9, 9);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 5, _right: false}))
         );
         heap.insert(10, 10);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 5, _right: true}))
         );
         address(0).call("");
         heap.insert(11, 11);
 
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 6, _right: false}))
         );
         heap.insert(12, 12);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 6, _right: true}))
         );
 
         heap.insert(13, 13);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 7, _right: false}))
         );
         heap.insert(14, 14);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 7, _right: true}))
         );
 
         heap.insert(15, 15);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 8, _right: false}))
         );
 
         heap.insert(16, 16);
         assertEq(
-            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer({_key: 8, _right: true}))
         );
     }
@@ -976,28 +948,25 @@ contract MinHeapMapTest is BaseTest {
         bool right
     ) internal {
         assertEq(_heap.peek(), peek, "wrong peek");
-        assertEq(_heap.heapMetadata.rootKey(), root, "wrong root");
-        assertEq(_heap.heapMetadata.size(), size, "wrong size");
+        assertEq(_heap.metadata.rootKey(), root, "wrong root");
+        assertEq(_heap.metadata.size(), size, "wrong size");
+        assertEq(_heap.metadata.lastNodeKey(), lastNode, "wrong lastNodeKey");
         assertEq(
-            _heap.heapMetadata.lastNodeKey(), lastNode, "wrong lastNodeKey"
-        );
-        assertEq(
-            _heap.heapMetadata.leftmostNodeKey(),
+            _heap.metadata.leftmostNodeKey(),
             leftmostNode,
             "wrong leftmostNodeKey"
         );
         assertEq(
-            Pointer.unwrap(_heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(_heap.metadata.insertPointer()),
             Pointer.unwrap(PointerType.createPointer(pointerKey, right)),
             "wrong insertPointer"
         );
     }
 
     function logHeap(Heap storage _heap) internal {
-        uint256 rootKey = _heap.heapMetadata.rootKey();
+        uint256 rootKey = _heap.metadata.rootKey();
         uint256 _nodesSlot = Helper._nodesSlot(_heap);
-        for (uint256 i = rootKey; i < _heap.heapMetadata.size() + rootKey; i++)
-        {
+        for (uint256 i = rootKey; i < _heap.metadata.size() + rootKey; i++) {
             emit NodeLog(
                 uint8(i - rootKey + 101),
                 bytes32(Node.unwrap(Helper._get(_nodesSlot, i)))
