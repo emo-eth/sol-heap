@@ -72,12 +72,6 @@ contract MinHeapMapSnapshotTest is BaseTest {
         }
     }
 
-    // function test_snapshotInsert100kDescending() public {
-    //     for (uint256 i = 100_000; i > 0; i--) {
-    //         heap.insert(i, i);
-    //     }
-    // }
-
     function test_snapshotInsert100Descending() public {
         for (uint256 i = 100; i > 0; i--) {
             heap.insert(i, i);
@@ -87,6 +81,58 @@ contract MinHeapMapSnapshotTest is BaseTest {
     function test_snapshotInsert10Descending() public {
         for (uint256 i = 10; i > 0; i--) {
             heap.insert(i, i);
+        }
+    }
+
+    function test_snapshotInsert10Ascending() public {
+        for (uint256 i = 1; i <= 10; i++) {
+            heap.insert(i, i);
+        }
+    }
+
+    function test_snapshotInsert100Ascending() public {
+        for (uint256 i = 1; i <= 100; i++) {
+            heap.insert(i, i);
+        }
+    }
+
+    function test_snapshotInsert1kAscending() public {
+        for (uint256 i = 1; i <= 1000; i++) {
+            heap.insert(i, i);
+        }
+    }
+
+    function test_snapshotInsert10kAscending() public {
+        for (uint256 i = 1; i <= 10_000; i++) {
+            heap.insert(i, i);
+        }
+    }
+
+    function test_snapshotInsert10Alternating() public {
+        for (uint256 i = 1; i <= 10 / 2; i++) {
+            heap.insert(i, i);
+            heap.insert(11 - i, 11 - i);
+        }
+    }
+
+    function test_snapshotInsert100Alternating() public {
+        for (uint256 i = 1; i <= 100 / 2; i++) {
+            heap.insert(i, i);
+            heap.insert(101 - i, 101 - i);
+        }
+    }
+
+    function test_snapshotInsert1kAlternating() public {
+        for (uint256 i = 1; i <= 1000 / 2; i++) {
+            heap.insert(i, i);
+            heap.insert(1001 - i, 1001 - i);
+        }
+    }
+
+    function test_snapshotInsert10kAlternating() public {
+        for (uint256 i = 1; i <= 10_000 / 2; i++) {
+            heap.insert(i, i);
+            heap.insert(10_001 - i, 10_001 - i);
         }
     }
 
