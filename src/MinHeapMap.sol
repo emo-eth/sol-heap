@@ -64,7 +64,9 @@ library MinHeapMap {
         });
         Helper.update(nodesSlot, key, newNode);
 
-        metadata = Helper.preInsertUpdateHeapMetadata(nodesSlot, metadata, key);
+        metadata = Helper.prePercolateUpInsertUpdateHeapMetadata(
+            nodesSlot, metadata, key
+        );
 
         // percolate new node up in the heap and store updated heap metadata
         heap.metadata = Helper.percUp(nodesSlot, metadata, key, newNode);

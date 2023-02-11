@@ -54,7 +54,8 @@ library MinHeapMapHelper {
     }
 
     /**
-     * @dev update a node
+     * @dev update a node when swapping with its parent, as well as its sibling
+     * (if it exists) to point to node as its new parent
      */
     function updateNodeAndSibling(
         uint256 nodesSlot,
@@ -89,6 +90,9 @@ library MinHeapMapHelper {
         return node;
     }
 
+    /**
+     * @dev update a parent node when swapping with its child
+     */
     function updateParent(
         uint256 nodesSlot,
         uint256 key,
@@ -108,6 +112,9 @@ library MinHeapMapHelper {
         return parentNode;
     }
 
+    /**
+     * @dev update the children of a node when swapping with its parent
+     */
     function updateChildrenWithNewParent(
         uint256 nodesSlot,
         uint256 newParent,
@@ -165,6 +172,10 @@ library MinHeapMapHelper {
         return (node, parentNode, grandParentKey);
     }
 
+    /**
+     * @dev Swap a node with the root node by updating their respective parents
+     * and the children of the root
+     */
     function swapWithRoot(
         uint256 nodesSlot,
         Node rootNode,
@@ -174,10 +185,8 @@ library MinHeapMapHelper {
         uint256 lastNodeParentKey = lastNode.parent();
 
         // update root children if they are not the last node
-        uint256 rootLeftKey = rootNode.left(); //== lastNodeKey ? EMPTY :
-            // rootNode.left();
-        uint256 rootRightKey = rootNode.right(); // == lastNodeKey ? EMPTY :
-            // rootNode.right();
+        uint256 rootLeftKey = rootNode.left();
+        uint256 rootRightKey = rootNode.right();
         if (rootLeftKey != EMPTY && rootLeftKey != lastNodeKey) {
             Node leftNode = get(nodesSlot, rootLeftKey);
             leftNode = leftNode.setParent(lastNodeKey);
@@ -210,14 +219,6 @@ library MinHeapMapHelper {
 
     /**
      * @dev Pop the root node off the heap, replacing it with the last node
-     *
-     * @param nodesSlot the slot of the nodes mapping (cached for efficiency)
-     * @param rootKey the key of the old root node
-     * @param lastNodeKey the key of the old last node
-     *
-     * @return oldRootVal the uint160 value of the old root node
-     * @return newRootKey the key of the new root node
-     * @return newRoot the new root node
      */
     function pop(uint256 nodesSlot, uint256 rootKey, uint256 lastNodeKey)
         internal
@@ -266,6 +267,9 @@ library MinHeapMapHelper {
         return rightmostKey;
     }
 
+    /**
+     * @dev Get the key of the leftmost node in the heap.
+     */
     function getLeftmostKey(Heap storage heap)
         internal
         view
@@ -282,9 +286,9 @@ library MinHeapMapHelper {
     }
 
     /**
-     * @dev Update heap metadata before percolating up after inserting a node
+     * @dev Update heap metadata before inserting a node and percolating up
      */
-    function preInsertUpdateHeapMetadata(
+    function prePercolateUpInsertUpdateHeapMetadata(
         uint256 nodesSlot,
         HeapMetadata metadata,
         uint256 key
@@ -528,6 +532,10 @@ library MinHeapMapHelper {
         }
     }
 
+    /**
+     * @dev Get the child pointer to the previous sibling of the node at the
+     * given key. Used when inserting a node.
+     */
     function getPreviousInsertPointer(
         uint256 nodesSlot,
         uint256 _size,
@@ -696,11 +704,11 @@ library MinHeapMapHelper {
         // point to right child of rightmost child of the common ancestor
         return tempKey;
     }
+
     /**
      * @dev Determine if all layers of the heap are filled. Used when computing
      * insertion pointer.
      */
-
     function allLayersFilled(uint256 numNodes)
         internal
         pure
@@ -760,6 +768,9 @@ library MinHeapMapHelper {
         return metadata;
     }
 
+    /**
+     * @dev Get the slot of the nodes mapping in the heap struct.
+     */
     function _nodesSlot(Heap storage heap) internal pure returns (uint256) {
         uint256 nodesSlot;
         assembly {

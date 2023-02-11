@@ -18,7 +18,9 @@ contract MinHeapMapTest is BaseTest {
     uint256 nodesSlot;
 
     function setUp() public virtual override {
-        nodesSlot = Helper._nodesSlot(heap);
+        assembly {
+            sstore(nodesSlot.slot, heap.slot)
+        }
         for (uint256 i = 1; i <= 257; i++) {
             preFilled.insert(i, i);
         }
@@ -963,7 +965,10 @@ contract MinHeapMapTest is BaseTest {
 
     function logHeap(Heap storage _heap) internal {
         uint256 rootKey = _heap.metadata.rootKey();
-        uint256 _nodesSlot = Helper._nodesSlot(_heap);
+        uint256 _nodesSlot;
+        assembly {
+            _nodesSlot := heap.slot
+        }
         for (uint256 i = rootKey; i < _heap.metadata.size() + rootKey; i++) {
             emit NodeLog(
                 uint8(i - rootKey + 101),
