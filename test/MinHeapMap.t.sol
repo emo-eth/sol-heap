@@ -404,6 +404,76 @@ contract MinHeapMapTest is BaseTest {
         );
     }
 
+    function testSixProperties() public {
+        heap.insert(1, 1);
+        heap.insert(2, 2);
+        heap.insert(3, 3);
+        heap.insert(4, 4);
+        heap.insert(5, 5);
+        heap.insert(6, 6);
+        logHeap(heap);
+        assertEq(heap.peek(), 1, "wrong peek");
+        assertEq(heap.heapMetadata.rootKey(), 1, "wrong root");
+        assertEq(heap.heapMetadata.size(), 6, "wrong size");
+        assertEq(heap.heapMetadata.lastNodeKey(), 6, "wrong lastNodeKey");
+        assertEq(
+            heap.heapMetadata.leftmostNodeKey(), 4, "wrong leftmostNodeKey"
+        );
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(3, true)),
+            "wrong insertPointer"
+        );
+
+        uint256 val = heap.pop();
+        logHeap(heap);
+
+        // revert();
+        assertEq(val, 1, "wrong pop");
+        assertEq(heap.peek(), 2, "wrong peek");
+        assertEq(heap.heapMetadata.rootKey(), 2, "wrong root");
+        assertEq(heap.heapMetadata.size(), 5, "wrong size");
+        assertEq(heap.heapMetadata.lastNodeKey(), 5, "wrong lastNodeKey");
+        assertEq(
+            heap.heapMetadata.leftmostNodeKey(), 6, "wrong leftmostNodeKey"
+        );
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(3, false)),
+            "wrong insertPointer"
+        );
+        address(0).call("");
+
+        val = heap.pop();
+        logHeap(heap);
+        // revert();
+        assertEq(val, 2, "wrong pop");
+        assertEq(heap.peek(), 3, "wrong peek");
+        assertEq(heap.heapMetadata.rootKey(), 3, "wrong root");
+        assertEq(heap.heapMetadata.size(), 4, "wrong size");
+        assertEq(heap.heapMetadata.lastNodeKey(), 6, "wrong lastNodeKey");
+        assertEq(
+            heap.heapMetadata.leftmostNodeKey(), 6, "wrong leftmostNodeKey"
+        );
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(4, true)),
+            "wrong insertPointer"
+        );
+    }
+
+    function logHeap(MinHeapMap.Heap storage _heap) internal {
+        uint256 rootKey = _heap.heapMetadata.rootKey();
+        for (uint256 i = rootKey; i <= _heap.heapMetadata.size() + rootKey; i++)
+        {
+            emit NodeLog(bytes32(Node.unwrap(MinHeapMap._get(nodesSlot, i))));
+        }
+        emit Fart();
+    }
+
+    event NodeLog(bytes32);
+    event Fart();
+
     // function testFuzz(uint256[] memory arr) public {
     //     if (arr.length == 0) {
     //         arr = new uint256[](1);

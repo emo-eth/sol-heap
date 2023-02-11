@@ -79,7 +79,7 @@ library MinHeapMap {
         _update(nodesSlot, newParent, parentNode);
     }
 
-    function _updateChildren(
+    function _updateChildChildrenParents(
         uint256 nodesSlot,
         uint256 newParent,
         uint256 leftChildKey,
@@ -95,6 +95,53 @@ library MinHeapMap {
             rightChildNode = rightChildNode.setParent(newParent);
             _update(nodesSlot, rightChildKey, rightChildNode);
         }
+    }
+
+    function _updateChildAndSibling(
+        uint256 nodesSlot,
+        uint256 childKey,
+        Node childNode,
+        uint256 parentKey,
+        Node parentNode,
+        uint256 childNewParent
+    ) internal returns (Node) {
+        bool isRight = parentNode.right() == childKey;
+
+        //  update childnode with new parent and left/right children
+        childNode = childNode.setParent(childNewParent);
+        if (isRight) {
+            uint256 parentLeft = parentNode.left();
+            childNode = childNode.setRight(parentKey).setLeft(parentLeft);
+            Node parentLeftNode = _get(nodesSlot, parentLeft);
+            parentLeftNode = parentLeftNode.setParent(childKey);
+            _update(nodesSlot, parentLeft, parentLeftNode);
+        } else {
+            uint256 parentRight = parentNode.right();
+            childNode = childNode.setLeft(parentKey).setRight(parentRight);
+            Node parentRightNode = _get(nodesSlot, parentRight);
+            parentRightNode = parentRightNode.setParent(childKey);
+            _update(nodesSlot, parentRight, parentRightNode);
+        }
+        _update(nodesSlot, childKey, childNode);
+        return childNode;
+    }
+
+    function _updateParent(
+        uint256 nodesSlot,
+        uint256 childKey,
+        uint256 parentKey,
+        Node parentNode,
+        uint256 childLeftKey,
+        uint256 childRightKey
+    ) internal returns (Node) {
+        // update parent node with new parent and left/right children
+        parentNode = parentNode.setParent(childKey).setLeft(childLeftKey)
+            .setRight(childRightKey);
+
+        // update storage before percolating (which reads from storage)
+        _update(nodesSlot, parentKey, parentNode);
+
+        return parentNode;
     }
 
     /**
@@ -115,62 +162,66 @@ library MinHeapMap {
             uint256 childNewParent
         )
     {
-        bool isRight = parentNode.right() == childKey;
         childNewParent = parentNode.parent();
 
         uint256 childLeftKey = childNode.left();
         uint256 childRightKey = childNode.right();
 
         _updateParent(nodesSlot, childKey, childNewParent, parentKey);
-        _updateChildren(nodesSlot, parentKey, childLeftKey, childRightKey);
+        _updateChildChildrenParents(
+            nodesSlot, parentKey, childLeftKey, childRightKey
+        );
 
-        //  update childnode with new parent and left/right children
-        childNode = childNode.setParent(childNewParent);
-        if (isRight) {
-            childNode = childNode.setRight(parentKey).setLeft(parentNode.left());
-        } else {
-            childNode =
-                childNode.setLeft(parentKey).setRight(parentNode.right());
-        }
+        childNode = _updateChildAndSibling(
+            nodesSlot,
+            childKey,
+            childNode,
+            parentKey,
+            parentNode,
+            childNewParent
+        );
+        parentNode = _updateParent(
+            nodesSlot,
+            childKey,
+            parentKey,
+            parentNode,
+            childLeftKey,
+            childRightKey
+        );
 
-        // update parent node with new parent and left/right children
-        parentNode = parentNode.setParent(childKey).setLeft(childLeftKey)
-            .setRight(childRightKey);
-
-        // update storage before percolating (which reads from storage)
-        _update(nodesSlot, childKey, childNode);
-        _update(nodesSlot, parentKey, parentNode);
         return (childNode, parentNode, childNewParent);
     }
 
-    /**
-     * @dev update the parent pointers of the children of a node. Used when
-     * popping an element off the top of the heap, which replaces the top node
-     * with the last node
-     *
-     * @param nodesSlot the slot of the nodes mapping (cached for efficiency)
-     * @param leftChildKey the key of the left child node
-     * @param rightChildKey the key of the right child node
-     * @param newParentKey the key of the new parent node
-     */
-    function _updateChildrenParentPointers(
-        uint256 nodesSlot,
-        uint256 leftChildKey,
-        uint256 rightChildKey,
-        uint256 newParentKey
-    ) internal {
-        // use branches since unnecessary sloads are more costly, even if warm
-        if (leftChildKey != EMPTY) {
-            Node leftChildNode = _get(nodesSlot, leftChildKey);
-            leftChildNode = leftChildNode.setParent(newParentKey);
-            _update(nodesSlot, leftChildKey, leftChildNode);
-        }
-        if (rightChildKey != EMPTY) {
-            Node rightChildNode = _get(nodesSlot, rightChildKey);
-            rightChildNode = rightChildNode.setParent(newParentKey);
-            _update(nodesSlot, rightChildKey, rightChildNode);
-        }
-    }
+    // /**
+    //  * @dev update the parent pointers of the children of a node. Used when
+    //  * popping an element off the top of the heap, which replaces the top
+    // node
+    //  * with the last node
+    //  *
+    //  * @param nodesSlot the slot of the nodes mapping (cached for efficiency)
+    //  * @param leftChildKey the key of the left child node
+    //  * @param rightChildKey the key of the right child node
+    //  * @param newParentKey the key of the new parent node
+    //  */
+    // function _updateChildrenParentPointers(
+    //     uint256 nodesSlot,
+    //     uint256 leftChildKey,
+    //     uint256 rightChildKey,
+    //     uint256 newParentKey
+    // ) internal {
+    //     // use branches since unnecessary sloads are more costly, even if
+    // warm
+    //     if (leftChildKey != EMPTY) {
+    //         Node leftChildNode = _get(nodesSlot, leftChildKey);
+    //         leftChildNode = leftChildNode.setParent(newParentKey);
+    //         _update(nodesSlot, leftChildKey, leftChildNode);
+    //     }
+    //     if (rightChildKey != EMPTY) {
+    //         Node rightChildNode = _get(nodesSlot, rightChildKey);
+    //         rightChildNode = rightChildNode.setParent(newParentKey);
+    //         _update(nodesSlot, rightChildKey, rightChildNode);
+    //     }
+    // }
 
     function _swapWithRoot(
         uint256 nodesSlot,
