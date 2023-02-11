@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import { TestPlus as Test } from "solady-test/utils/TestPlus.sol";
+import { TestPlus as Test } from "../TestPlus.sol";
 import { Pointer, PointerType } from "../../src/lib/PointerType.sol";
 
 contract PointerTypeTest is Test {
