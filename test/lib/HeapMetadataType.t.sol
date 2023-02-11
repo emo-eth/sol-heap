@@ -175,4 +175,81 @@ contract HeapMetadataTypeTest is Test {
             "unpacked insertPointer incorrect"
         );
     }
+
+    function testSetters() public {
+        HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
+            _rootKey: 1,
+            _size: 2,
+            _leftmostNodeKey: 3,
+            _lastNodeKey: 4,
+            _insertPointer: PointerType.createPointer(5, true)
+        });
+        HeapMetadata _heapMetadata = heapMetadata.setRootKey(6);
+        assertEq(_heapMetadata.rootKey(), 6, "root incorrect");
+        assertEq(_heapMetadata.size(), 2, "size incorrect");
+        assertEq(
+            _heapMetadata.leftmostNodeKey(), 3, "leftmostNodeKey incorrect"
+        );
+        assertEq(_heapMetadata.lastNodeKey(), 4, "lastKey incorrect");
+        assertEq(
+            Pointer.unwrap(_heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(5, true)),
+            "insertPointer incorrect"
+        );
+
+        // do for all setters
+
+        _heapMetadata = heapMetadata.setSize(7);
+        assertEq(_heapMetadata.rootKey(), 1, "root incorrect");
+        assertEq(_heapMetadata.size(), 7, "size incorrect");
+        assertEq(
+            _heapMetadata.leftmostNodeKey(), 3, "leftmostNodeKey incorrect"
+        );
+        assertEq(_heapMetadata.lastNodeKey(), 4, "lastKey incorrect");
+        assertEq(
+            Pointer.unwrap(_heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(5, true)),
+            "insertPointer incorrect"
+        );
+
+        _heapMetadata = heapMetadata.setLeftmostNodeKey(8);
+        assertEq(_heapMetadata.rootKey(), 1, "root incorrect");
+        assertEq(_heapMetadata.size(), 2, "size incorrect");
+        assertEq(
+            _heapMetadata.leftmostNodeKey(), 8, "leftmostNodeKey incorrect"
+        );
+        assertEq(_heapMetadata.lastNodeKey(), 4, "lastKey incorrect");
+        assertEq(
+            Pointer.unwrap(_heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(5, true)),
+            "insertPointer incorrect"
+        );
+
+        _heapMetadata = heapMetadata.setLastNodeKey(9);
+        assertEq(_heapMetadata.rootKey(), 1, "root incorrect");
+        assertEq(_heapMetadata.size(), 2, "size incorrect");
+        assertEq(
+            _heapMetadata.leftmostNodeKey(), 3, "leftmostNodeKey incorrect"
+        );
+        assertEq(_heapMetadata.lastNodeKey(), 9, "lastKey incorrect");
+        assertEq(
+            Pointer.unwrap(_heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(5, true)),
+            "insertPointer incorrect"
+        );
+
+        _heapMetadata =
+            heapMetadata.setInsertPointer(PointerType.createPointer(10, false));
+        assertEq(_heapMetadata.rootKey(), 1, "root incorrect");
+        assertEq(_heapMetadata.size(), 2, "size incorrect");
+        assertEq(
+            _heapMetadata.leftmostNodeKey(), 3, "leftmostNodeKey incorrect"
+        );
+        assertEq(_heapMetadata.lastNodeKey(), 4, "lastKey incorrect");
+        assertEq(
+            Pointer.unwrap(_heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(10, false)),
+            "insertPointer incorrect"
+        );
+    }
 }

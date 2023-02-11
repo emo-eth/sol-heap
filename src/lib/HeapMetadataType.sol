@@ -6,20 +6,20 @@ import { Pointer } from "./PointerType.sol";
 type HeapMetadata is uint256;
 
 library HeapMetadataType {
-    // POINTER | LAST KEY | LEFTMOST KEY | ROOT KEY | SIZE
+    // POINTER, ROOT, SIZE, LEFTMOST, LAST
     uint256 constant UINT32_MASK = 0xffffffff;
     uint256 constant POINTER_MASK = 0x1FFFFFFFF;
-    uint256 constant NOT_SIZE = 0x01ffffffffffffffffffffffffffffffff00000000;
-    uint256 constant NOT_ROOT_KEY = 0x01ffffffffffffffffffffffff00000000ffffffff;
-    uint256 constant NOT_LEFTMOST_KEY_POINTER =
-        0x01ffffffffffffffff00000000ffffffffffffffff;
-    uint256 constant NOT_LAST_KEY_POINTER =
-        0x01ffffffff00000000ffffffffffffffffffffffff;
     uint256 constant NOT_INSERT_POINTER = 0xffffffffffffffffffffffffffffffff;
-    uint256 constant ROOT_KEY_SHIFT = 32;
-    uint256 constant LEFTMOST_KEY_SHIFT = 64;
-    uint256 constant LAST_KEY_KEY_SHIFT = 96;
+    uint256 constant NOT_ROOT_KEY = 0x01ffffffff00000000ffffffffffffffffffffffff;
+    uint256 constant NOT_SIZE = 0x01ffffffffffffffff00000000ffffffffffffffff;
+    uint256 constant NOT_LEFTMOST_KEY =
+        0x01ffffffffffffffffffffffff00000000ffffffff;
+    uint256 constant NOT_LAST_KEY = 0x01ffffffffffffffffffffffffffffffff00000000;
+
     uint256 constant INSERT_POINTER_SHIFT = 128;
+    uint256 constant ROOT_KEY_SHIFT = 96;
+    uint256 constant SIZE_SHIFT = 64;
+    uint256 constant LEFTMOST_KEY_SHIFT = 32;
 
     function createHeapMetadata(
         uint256 _rootKey,
@@ -38,11 +38,11 @@ library HeapMetadataType {
                                 shl(ROOT_KEY_SHIFT, _rootKey),
                                 shl(INSERT_POINTER_SHIFT, _insertPointer)
                             ),
-                            shl(LAST_KEY_KEY_SHIFT, _lastNodeKey)
+                            shl(SIZE_SHIFT, _size)
                         ),
                         shl(LEFTMOST_KEY_SHIFT, _leftmostNodeKey)
                     ),
-                    _size
+                    _lastNodeKey
                 )
         }
     }
@@ -64,11 +64,11 @@ library HeapMetadataType {
                                 shl(ROOT_KEY_SHIFT, _rootKey),
                                 shl(INSERT_POINTER_SHIFT, _insertPointer)
                             ),
-                            shl(LAST_KEY_KEY_SHIFT, _lastNodeKey)
+                            shl(SIZE_SHIFT, _size)
                         ),
                         shl(LEFTMOST_KEY_SHIFT, _leftmostNodeKey)
                     ),
-                    _size
+                    _lastNodeKey
                 )
         }
     }
@@ -87,13 +87,12 @@ library HeapMetadataType {
         ///@solidity memory-safe-assembly
         assembly {
             _rootKey := and(shr(ROOT_KEY_SHIFT, _heapMetadata), UINT32_MASK)
-            _size := and(_heapMetadata, UINT32_MASK)
-            _insertPointer :=
-                and(shr(INSERT_POINTER_SHIFT, _heapMetadata), POINTER_MASK)
-            _lastNodeKey :=
-                and(shr(LAST_KEY_KEY_SHIFT, _heapMetadata), UINT32_MASK)
+            _size := and(shr(SIZE_SHIFT, _heapMetadata), UINT32_MASK)
             _leftmostNodeKey :=
                 and(shr(LEFTMOST_KEY_SHIFT, _heapMetadata), UINT32_MASK)
+            _lastNodeKey := and(_heapMetadata, UINT32_MASK)
+            _insertPointer :=
+                and(shr(INSERT_POINTER_SHIFT, _heapMetadata), POINTER_MASK)
         }
     }
 
@@ -115,7 +114,7 @@ library HeapMetadataType {
     {
         ///@solidity memory-safe-assembly
         assembly {
-            _size := and(_heapMetadata, UINT32_MASK)
+            _size := and(shr(SIZE_SHIFT, _heapMetadata), UINT32_MASK)
         }
     }
 
@@ -138,8 +137,7 @@ library HeapMetadataType {
     {
         ///@solidity memory-safe-assembly
         assembly {
-            _lastNodeKey :=
-                and(shr(LAST_KEY_KEY_SHIFT, _heapMetadata), UINT32_MASK)
+            _lastNodeKey := and(_heapMetadata, UINT32_MASK)
         }
     }
 
@@ -175,7 +173,7 @@ library HeapMetadataType {
         ///@solidity memory-safe-assembly
         assembly {
             _newHeapMetadata :=
-                or(and(_heapMetadata, NOT_SIZE), and(_size, UINT32_MASK))
+                or(and(_heapMetadata, NOT_SIZE), shl(SIZE_SHIFT, _size))
         }
     }
 
@@ -201,10 +199,7 @@ library HeapMetadataType {
         ///@solidity memory-safe-assembly
         assembly {
             _newHeapMetadata :=
-                or(
-                    and(_heapMetadata, NOT_LAST_KEY_POINTER),
-                    shl(LAST_KEY_KEY_SHIFT, _lastNodeKey)
-                )
+                or(and(_heapMetadata, NOT_LAST_KEY), _lastNodeKey)
         }
     }
 
@@ -216,7 +211,7 @@ library HeapMetadataType {
         assembly {
             _newHeapMetadata :=
                 or(
-                    and(_heapMetadata, NOT_LEFTMOST_KEY_POINTER),
+                    and(_heapMetadata, NOT_LEFTMOST_KEY),
                     shl(LEFTMOST_KEY_SHIFT, _leftmostNodeKey)
                 )
         }
