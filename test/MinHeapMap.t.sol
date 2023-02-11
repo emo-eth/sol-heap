@@ -16,8 +16,15 @@ contract MinHeapMapTest is BaseTest {
 
     function setUp() public virtual override {
         nodesSlot = MinHeapMap._nodesSlot(heap);
-        for (uint256 i = 1; i < 16; i++) {
+        for (uint256 i = 1; i <= 257; i++) {
             preFilled.insert(i, i);
+        }
+    }
+
+    function testPop() public {
+        for (uint256 i = 1; i <= 257; i++) {
+            assertEq(i, preFilled.peek(), "wrong peek");
+            assertEq(i, preFilled.pop(), "wrong pop");
         }
     }
 
@@ -142,36 +149,11 @@ contract MinHeapMapTest is BaseTest {
     function testInsertReverse() public {
         for (uint256 i = 16; i < 1; i--) {
             heap.insert(i, i);
-
             assertEq(i, heap.peek());
             assertEq(i, heap.size());
             assertEq(heap.getLeftmostKey(), heap.heapMetadata.leftmostNodeKey());
         }
     }
-
-    // function testPop69() public {
-    //     for (uint256 i = 1; i < 16; i++) {
-    //         emit log_named_uint("popping", i);
-    //         emit log_named_uint(
-    //             "heap root key", preFilled.heapMetadata.rootKey()
-    //             );
-    //         emit log_named_uint("heap size", preFilled.heapMetadata.size());
-    //         emit log_named_uint(
-    //             "heap last node key", preFilled.heapMetadata.lastNodeKey()
-    //             );
-    //         emit log_named_uint(
-    //             "heap leftmost node key",
-    //             preFilled.heapMetadata.leftmostNodeKey()
-    //             );
-    //         emit log_named_uint(
-    //             "heap insert pointer",
-    //             Pointer.unwrap(preFilled.heapMetadata.insertPointer())
-    //             );
-    //         assertEq(i, preFilled.peek(), "wrong peek");
-    //         require(i == preFilled.peek(), "wrong peek");
-    //         assertEq(i, preFilled.pop(), "wrong pop");
-    //     }
-    // }
 
     function testOneProperties() public {
         heap.insert(1, 1);
@@ -462,45 +444,508 @@ contract MinHeapMapTest is BaseTest {
         );
     }
 
-    function logHeap(MinHeapMap.Heap storage _heap) internal {
-        uint256 rootKey = _heap.heapMetadata.rootKey();
-        for (uint256 i = rootKey; i <= _heap.heapMetadata.size() + rootKey; i++)
-        {
-            emit NodeLog(bytes32(Node.unwrap(MinHeapMap._get(nodesSlot, i))));
-        }
-        emit Fart();
+    function testSevenProperties() public {
+        heap.insert(1, 1);
+        heap.insert(2, 2);
+        heap.insert(3, 3);
+        heap.insert(4, 4);
+        heap.insert(5, 5);
+        heap.insert(6, 6);
+        heap.insert(7, 7);
+
+        assertHeap({
+            _heap: heap,
+            peek: 1,
+            root: 1,
+            size: 7,
+            lastNode: 7,
+            leftmostNode: 4,
+            pointerKey: 4,
+            right: false
+        });
+
+        uint256 val = heap.pop();
+        assertEq(val, 1);
+        assertHeap({
+            _heap: heap,
+            peek: 2,
+            root: 2,
+            size: 6,
+            lastNode: 6,
+            leftmostNode: 7,
+            pointerKey: 3,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 2);
+        assertHeap({
+            _heap: heap,
+            peek: 3,
+            root: 3,
+            size: 5,
+            lastNode: 5,
+            leftmostNode: 7,
+            pointerKey: 6,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 3);
+        assertHeap({
+            _heap: heap,
+            peek: 4,
+            root: 4,
+            size: 4,
+            lastNode: 7,
+            leftmostNode: 7,
+            pointerKey: 5,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 4);
+        assertHeap({
+            _heap: heap,
+            peek: 5,
+            root: 5,
+            size: 3,
+            lastNode: 6,
+            leftmostNode: 7,
+            pointerKey: 7,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 5);
+        assertHeap({
+            _heap: heap,
+            peek: 6,
+            root: 6,
+            size: 2,
+            lastNode: 7,
+            leftmostNode: 7,
+            pointerKey: 6,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 6);
+        assertHeap({
+            _heap: heap,
+            peek: 7,
+            root: 7,
+            size: 1,
+            lastNode: 7,
+            leftmostNode: 7,
+            pointerKey: 7,
+            right: false
+        });
     }
 
-    event NodeLog(bytes32);
-    event Fart();
+    function testEightProperties() public {
+        insertRange(heap, 1, 8);
+        assertHeap({
+            _heap: heap,
+            peek: 1,
+            root: 1,
+            size: 8,
+            lastNode: 8,
+            leftmostNode: 8,
+            pointerKey: 4,
+            right: true
+        });
 
-    // function testFuzz(uint256[] memory arr) public {
-    //     if (arr.length == 0) {
-    //         arr = new uint256[](1);
-    //         arr[0] = 1;
-    //     }
+        uint256 val = heap.pop();
+        assertEq(val, 1);
+        assertHeap({
+            _heap: heap,
+            peek: 2,
+            root: 2,
+            size: 7,
+            lastNode: 7,
+            leftmostNode: 8,
+            pointerKey: 8,
+            right: false
+        });
 
-    //     for (uint256 i = 0; i < arr.length; i++) {
-    //         heap.insert(arr[i], arr[i]);
-    //     }
+        val = heap.pop();
+        assertEq(val, 2);
+        assertHeap({
+            _heap: heap,
+            peek: 3,
+            root: 3,
+            size: 6,
+            lastNode: 7,
+            leftmostNode: 8,
+            pointerKey: 6,
+            right: true
+        });
 
-    //     uint256[] memory sorted = new uint256[](arr.length);
-    //     for (uint256 i = 0; i < arr.length; i++) {
-    //         sorted[i] = heap.pop();
-    //     }
+        val = heap.pop();
+        assertEq(val, 3);
+        assertHeap({
+            _heap: heap,
+            peek: 4,
+            root: 4,
+            size: 5,
+            lastNode: 7,
+            leftmostNode: 8,
+            pointerKey: 6,
+            right: false
+        });
 
-    //     for (uint256 i = 1; i < arr.length; i++) {
-    //         assertTrue(sorted[i - 1] <= sorted[i]);
-    //     }
-    // }
+        val = heap.pop();
+        assertEq(val, 4);
+        assertHeap({
+            _heap: heap,
+            peek: 5,
+            root: 5,
+            size: 4,
+            lastNode: 8,
+            leftmostNode: 8,
+            pointerKey: 7,
+            right: true
+        });
 
-    // function min(uint256[] memory arr) internal pure returns (uint256) {
-    //     uint256 _min = arr[0];
-    //     for (uint256 i = 1; i < arr.length; i++) {
-    //         if (arr[i] < _min) {
-    //             _min = arr[i];
-    //         }
-    //     }
-    //     return _min;
-    // }
+        val = heap.pop();
+        assertEq(val, 5);
+        assertHeap({
+            _heap: heap,
+            peek: 6,
+            root: 6,
+            size: 3,
+            lastNode: 8,
+            leftmostNode: 7,
+            pointerKey: 7,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 6);
+        assertHeap({
+            _heap: heap,
+            peek: 7,
+            root: 7,
+            size: 2,
+            lastNode: 8,
+            leftmostNode: 8,
+            pointerKey: 7,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 7);
+        assertHeap({
+            _heap: heap,
+            peek: 8,
+            root: 8,
+            size: 1,
+            lastNode: 8,
+            leftmostNode: 8,
+            pointerKey: 8,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 8);
+        assertHeap({
+            _heap: heap,
+            peek: 0,
+            root: 0,
+            size: 0,
+            lastNode: 0,
+            leftmostNode: 0,
+            pointerKey: 0,
+            right: false
+        });
+    }
+
+    function testTenProperties() public {
+        insertRange(heap, 1, 10);
+        assertHeap({
+            _heap: heap,
+            peek: 1,
+            root: 1,
+            size: 10,
+            lastNode: 10,
+            leftmostNode: 8,
+            pointerKey: 5,
+            right: true
+        });
+
+        uint256 val = heap.pop();
+        assertEq(val, 1);
+        assertHeap({
+            _heap: heap,
+            peek: 2,
+            root: 2,
+            size: 9,
+            lastNode: 9,
+            leftmostNode: 10,
+            pointerKey: 5,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 2);
+        assertHeap({
+            _heap: heap,
+            peek: 3,
+            root: 3,
+            size: 8,
+            lastNode: 10,
+            leftmostNode: 10,
+            pointerKey: 8,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 3);
+        assertHeap({
+            _heap: heap,
+            peek: 4,
+            root: 4,
+            size: 7,
+            lastNode: 7,
+            leftmostNode: 8,
+            pointerKey: 8,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 4);
+        assertHeap({
+            _heap: heap,
+            peek: 5,
+            root: 5,
+            size: 6,
+            lastNode: 9,
+            leftmostNode: 8,
+            pointerKey: 6,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 5);
+        assertHeap({
+            _heap: heap,
+            peek: 6,
+            root: 6,
+            size: 5,
+            lastNode: 10,
+            leftmostNode: 8,
+            pointerKey: 9,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 6);
+        assertHeap({
+            _heap: heap,
+            peek: 7,
+            root: 7,
+            size: 4,
+            lastNode: 10,
+            leftmostNode: 10,
+            pointerKey: 8,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 7);
+        assertHeap({
+            _heap: heap,
+            peek: 8,
+            root: 8,
+            size: 3,
+            lastNode: 9,
+            leftmostNode: 10,
+            pointerKey: 10,
+            right: false
+        });
+
+        val = heap.pop();
+        assertEq(val, 8);
+        assertHeap({
+            _heap: heap,
+            peek: 9,
+            root: 9,
+            size: 2,
+            lastNode: 10,
+            leftmostNode: 10,
+            pointerKey: 9,
+            right: true
+        });
+
+        val = heap.pop();
+        assertEq(val, 9);
+        assertHeap({
+            _heap: heap,
+            peek: 10,
+            root: 10,
+            size: 1,
+            lastNode: 10,
+            leftmostNode: 10,
+            pointerKey: 10,
+            right: false
+        });
+    }
+
+    function testInsertSixteen() public {
+        heap.insert(1, 1);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 1, _right: false}))
+        );
+        heap.insert(2, 2);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 1, _right: true}))
+        );
+        heap.insert(3, 3);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 2, _right: false}))
+        );
+        heap.insert(4, 4);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 2, _right: true}))
+        );
+        heap.insert(5, 5);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 3, _right: false}))
+        );
+        heap.insert(6, 6);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 3, _right: true}))
+        );
+        heap.insert(7, 7);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 4, _right: false}))
+        );
+        heap.insert(8, 8);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 4, _right: true}))
+        );
+        heap.insert(9, 9);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 5, _right: false}))
+        );
+        heap.insert(10, 10);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 5, _right: true}))
+        );
+        address(0).call("");
+        heap.insert(11, 11);
+
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 6, _right: false}))
+        );
+        heap.insert(12, 12);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 6, _right: true}))
+        );
+
+        heap.insert(13, 13);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 7, _right: false}))
+        );
+        heap.insert(14, 14);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 7, _right: true}))
+        );
+
+        heap.insert(15, 15);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 8, _right: false}))
+        );
+
+        heap.insert(16, 16);
+        assertEq(
+            Pointer.unwrap(heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer({_key: 8, _right: true}))
+        );
+    }
+
+    function testTwelveProperties() public {
+        insertRange(heap, 1, 12);
+        logHeap(heap);
+        assertHeap({
+            _heap: heap,
+            peek: 1,
+            root: 1,
+            size: 12,
+            lastNode: 12,
+            leftmostNode: 8,
+            pointerKey: 6,
+            right: true
+        });
+    }
+
+    function insertRange(
+        MinHeapMap.Heap storage _heap,
+        uint256 start,
+        uint256 end
+    ) internal {
+        for (uint256 i = start; i <= end; i++) {
+            _heap.insert(i, i);
+        }
+    }
+
+    function assertHeap(
+        MinHeapMap.Heap storage _heap,
+        uint256 peek,
+        uint256 root,
+        uint256 size,
+        uint256 lastNode,
+        uint256 leftmostNode,
+        uint256 pointerKey,
+        bool right
+    ) internal {
+        assertEq(_heap.peek(), peek, "wrong peek");
+        assertEq(_heap.heapMetadata.rootKey(), root, "wrong root");
+        assertEq(_heap.heapMetadata.size(), size, "wrong size");
+        assertEq(
+            _heap.heapMetadata.lastNodeKey(), lastNode, "wrong lastNodeKey"
+        );
+        assertEq(
+            _heap.heapMetadata.leftmostNodeKey(),
+            leftmostNode,
+            "wrong leftmostNodeKey"
+        );
+        assertEq(
+            Pointer.unwrap(_heap.heapMetadata.insertPointer()),
+            Pointer.unwrap(PointerType.createPointer(pointerKey, right)),
+            "wrong insertPointer"
+        );
+    }
+
+    function logHeap(MinHeapMap.Heap storage _heap) internal {
+        uint256 rootKey = _heap.heapMetadata.rootKey();
+        uint256 _nodesSlot = MinHeapMap._nodesSlot(_heap);
+        for (uint256 i = rootKey; i < _heap.heapMetadata.size() + rootKey; i++)
+        {
+            emit NodeLog(
+                uint8(i - rootKey + 101),
+                bytes32(Node.unwrap(MinHeapMap._get(_nodesSlot, i)))
+                );
+        }
+        emit Space();
+    }
+
+    event NodeLog(uint8, bytes32);
+    event Space();
 }

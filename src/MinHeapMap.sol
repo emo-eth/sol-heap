@@ -670,12 +670,11 @@ library MinHeapMap {
         }
         uint256 numAncestors;
         Node ancestorNode = _get(nodesSlot, ancestorKey);
-        Node tempNode = ancestorNode;
         uint256 tempKey;
         while (isRight) {
             // load parent node
             tempKey = ancestorKey;
-            ancestorKey = tempNode.parent();
+            ancestorKey = ancestorNode.parent();
             if (ancestorKey == EMPTY) {
                 break;
             }
@@ -690,7 +689,7 @@ library MinHeapMap {
         // leftmost
         // descendent of the ancestor
         tempKey = ancestorNode.right();
-        tempNode = _get(nodesSlot, tempKey);
+        Node tempNode = _get(nodesSlot, tempKey);
         /**
          * start at 1 since tempNode is already one child below highest
          * ancestor.
@@ -738,8 +737,8 @@ library MinHeapMap {
         Node node = _get(nodesSlot, key);
         uint256 ancestorKey = node.parent();
         require(ancestorKey != EMPTY, "no parent");
-        Node ancestor = _get(nodesSlot, ancestorKey);
-        uint256 ancestorLeftChild = ancestor.left();
+        Node ancestorNode = _get(nodesSlot, ancestorKey);
+        uint256 ancestorLeftChild = ancestorNode.left();
         bool isLeft = ancestorLeftChild == key;
         if (!isLeft) {
             // if it's not the left child, then the left child is the "previous"
@@ -747,27 +746,26 @@ library MinHeapMap {
             return ancestorLeftChild;
         }
         uint256 numAncestors;
-        Node tempNode = ancestor;
         uint256 tempKey;
         while (isLeft) {
             // load parent node
             tempKey = ancestorKey;
-            ancestorKey = tempNode.parent();
+            ancestorKey = ancestorNode.parent();
             if (ancestorKey == EMPTY) {
                 // we have reached the root; break
                 break;
             }
             // require(ancestorKey != EMPTY, "no intermediate parent");
-            ancestor = _get(nodesSlot, ancestorKey);
-            isLeft = ancestor.left() == tempKey;
+            ancestorNode = _get(nodesSlot, ancestorKey);
+            isLeft = ancestorNode.left() == tempKey;
             unchecked {
                 ++numAncestors;
             }
         }
         // when isLeft is no longer true, the pointer key will be the key of
         // rightmost descendent of the left child of the ancestor
-        tempKey = ancestor.left();
-        tempNode = _get(nodesSlot, tempKey);
+        tempKey = ancestorNode.left();
+        Node tempNode = _get(nodesSlot, tempKey);
         /**
          * start at 1 since tempNode is already one child below highest
          * ancestor.
