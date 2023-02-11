@@ -7,16 +7,18 @@ import { Node, NodeType } from "../src/lib/NodeType.sol";
 import { HeapMetadata, HeapMetadataType } from "../src/lib/HeapMetadataType.sol";
 import { Pointer, PointerType } from "../src/lib/PointerType.sol";
 import { Heap } from "../src/lib/Structs.sol";
+import { MinHeapMapHelper as Helper } from "../src/lib/MinHeapMapHelper.sol";
 
 contract MinHeapMapTest is BaseTest {
     using MinHeapMap for Heap;
+    using Helper for Heap;
 
     Heap private heap;
     Heap private preFilled;
     uint256 nodesSlot;
 
     function setUp() public virtual override {
-        nodesSlot = MinHeapMap._nodesSlot(heap);
+        nodesSlot = Helper._nodesSlot(heap);
         for (uint256 i = 1; i <= 257; i++) {
             preFilled.insert(i, i);
         }
@@ -30,25 +32,25 @@ contract MinHeapMapTest is BaseTest {
     }
 
     function testRealUpdate() public {
-        MinHeapMap.update(preFilled, 69, 0);
+        preFilled.update(69, 0);
         assertEq(preFilled.peek(), 0, "wrong peek");
         assertEq(preFilled.heapMetadata.rootKey(), 69, "wrong root key");
     }
 
     function testRealUpdate(uint256 key) public {
         key = bound(key, 1, 257);
-        MinHeapMap.update(preFilled, key, 0);
+        preFilled.update(key, 0);
         assertEq(preFilled.peek(), 0, "wrong peek");
         assertEq(preFilled.heapMetadata.rootKey(), key, "wrong root key");
     }
 
     function testUpdateBigger() public {
-        MinHeapMap.update(preFilled, 1, 999);
+        preFilled.update(1, 999);
         assertEq(preFilled.peek(), 2, "wrong peek");
         assertEq(preFilled.heapMetadata.rootKey(), 2, "wrong root");
         assertEq(preFilled.heapMetadata.leftmostNodeKey(), 1, "wrong leftmost");
-        MinHeapMap.update(preFilled, 2, 1000);
-        MinHeapMap.update(preFilled, 3, 1001);
+        preFilled.update(2, 1000);
+        preFilled.update(3, 1001);
 
         uint256 last = preFilled.pop();
         while (preFilled.size() > 0) {
@@ -84,16 +86,16 @@ contract MinHeapMapTest is BaseTest {
 
     function testUpdateAndGet(uint256 key, uint256 toWrap) public {
         key = bound(key, 1, type(uint32).max);
-        MinHeapMap._update(nodesSlot, key, Node.wrap(toWrap));
-        assertEq(Node.unwrap(MinHeapMap._get(nodesSlot, key)), toWrap);
+        Helper._update(nodesSlot, key, Node.wrap(toWrap));
+        assertEq(Node.unwrap(Helper._get(nodesSlot, key)), toWrap);
         assertEq(Node.unwrap(heap.nodes[key]), toWrap);
     }
 
     function testUpdateAndGet() public {
         uint256 key = 69;
         uint256 toWrap = 420;
-        MinHeapMap._update(nodesSlot, key, Node.wrap(toWrap));
-        assertEq(Node.unwrap(MinHeapMap._get(nodesSlot, key)), toWrap);
+        Helper._update(nodesSlot, key, Node.wrap(toWrap));
+        assertEq(Node.unwrap(Helper._get(nodesSlot, key)), toWrap);
         assertEq(Node.unwrap(heap.nodes[key]), toWrap);
     }
 
@@ -105,7 +107,7 @@ contract MinHeapMapTest is BaseTest {
             _right: 0,
             _parent: 0
         });
-        MinHeapMap._update(nodesSlot, 1, rootNode);
+        Helper._update(nodesSlot, 1, rootNode);
         HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
             _rootKey: 1,
             _size: 1,
@@ -114,7 +116,7 @@ contract MinHeapMapTest is BaseTest {
             _insertPointer: PointerType.createPointer(1, false)
         });
         heap.heapMetadata = heapMetadata;
-        assertEq(MinHeapMap.peek(heap), value);
+        assertEq(heap.peek(), value);
     }
 
     function testPeek(uint256 key, uint160 value) public {
@@ -125,7 +127,7 @@ contract MinHeapMapTest is BaseTest {
             _right: 0,
             _parent: 0
         });
-        MinHeapMap._update(nodesSlot, key, rootNode);
+        Helper._update(nodesSlot, key, rootNode);
         HeapMetadata heapMetadata = HeapMetadataType.createHeapMetadata({
             _rootKey: key,
             _size: 1,
@@ -134,12 +136,12 @@ contract MinHeapMapTest is BaseTest {
             _insertPointer: PointerType.createPointer(key, false)
         });
         heap.heapMetadata = heapMetadata;
-        assertEq(MinHeapMap.peek(heap), value);
+        assertEq(heap.peek(), value);
     }
 
     function testInsertAndPopOne() public {
-        MinHeapMap.insert(heap, 42, 69);
-        assertEq(MinHeapMap.peek(heap), 69, "peeked value incorrect");
+        heap.insert(42, 69);
+        assertEq(heap.peek(), 69, "peeked value incorrect");
         (
             uint256 root,
             uint256 size,
@@ -153,7 +155,7 @@ contract MinHeapMapTest is BaseTest {
         assertEq(leftmostNodeKey, 42, "leftmostNodeKey incorrect");
         assertEq(Pointer.unwrap(insertPointer), 42, "insertPointer incorrect");
 
-        uint256 value = MinHeapMap.pop(heap);
+        uint256 value = heap.pop();
         assertEq(value, 69, "popped value incorrect");
         (root, size, lastNodeKey, leftmostNodeKey, insertPointer) =
             HeapMetadataType.unpack(heap.heapMetadata);
@@ -167,9 +169,9 @@ contract MinHeapMapTest is BaseTest {
     }
 
     function testInsertTwo() public {
-        MinHeapMap.insert(heap, 42, 69);
-        MinHeapMap.insert(heap, 43, 420);
-        assertEq(MinHeapMap.peek(heap), 69, "peeked value incorrect");
+        heap.insert(42, 69);
+        heap.insert(43, 420);
+        assertEq(heap.peek(), 69, "peeked value incorrect");
         (
             uint256 root,
             uint256 size,
@@ -993,12 +995,12 @@ contract MinHeapMapTest is BaseTest {
 
     function logHeap(Heap storage _heap) internal {
         uint256 rootKey = _heap.heapMetadata.rootKey();
-        uint256 _nodesSlot = MinHeapMap._nodesSlot(_heap);
+        uint256 _nodesSlot = Helper._nodesSlot(_heap);
         for (uint256 i = rootKey; i < _heap.heapMetadata.size() + rootKey; i++)
         {
             emit NodeLog(
                 uint8(i - rootKey + 101),
-                bytes32(Node.unwrap(MinHeapMap._get(_nodesSlot, i)))
+                bytes32(Node.unwrap(Helper._get(_nodesSlot, i)))
                 );
         }
         emit Space();
