@@ -138,4 +138,8 @@ library MinHeapMap {
             heap.metadata = Helper.percDown(nodesSlot, metadata, key, node);
         }
     }
+
+    function get(Heap storage heap, uint256 key) internal view returns (Node) {
+        return Helper.get(Helper._nodesSlot(heap), key);
+    }
 }

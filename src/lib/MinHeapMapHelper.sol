@@ -8,18 +8,24 @@ import { Heap } from "./Structs.sol";
 import { EMPTY } from "./Constants.sol";
 
 library MinHeapMapHelper {
+    // bytes8(keccak256("MinHeapMap"))
+    uint256 internal constant NODES_SLOT_SEED = 0x80cfddc82c949a5f;
+    uint256 internal constant NODES_SLOT_SHIFT = 33;
+    uint256 internal constant BIT_FULL_VALUE_SLOT = 1 << 32;
+
     /**
      * @dev Read the node for a given key
      */
-    function get(uint256 slot, uint256 key) internal view returns (Node node) {
+    function get(uint256 nodes, uint256 key)
+        internal
+        view
+        returns (Node node)
+    {
         // emit Get(key);
         // require(key != EMPTY, "empty");
         assembly {
-            // derive mapping slot from key
-            mstore(0, key)
-            mstore(0x20, slot)
             // read node from mapping slot
-            node := sload(keccak256(0, 0x40))
+            node := sload(or(nodes, key))
         }
     }
 
@@ -28,9 +34,7 @@ library MinHeapMapHelper {
      */
     function update(uint256 nodesSlot, uint256 key, Node node) internal {
         assembly {
-            mstore(0, key)
-            mstore(0x20, nodesSlot)
-            sstore(keccak256(0, 0x40), node)
+            sstore(or(nodesSlot, key), node)
         }
     }
 
@@ -771,11 +775,15 @@ library MinHeapMapHelper {
     /**
      * @dev Get the slot of the nodes mapping in the heap struct.
      */
-    function _nodesSlot(Heap storage heap) internal pure returns (uint256) {
-        uint256 nodesSlot;
+    function _nodesSlot(Heap storage heap)
+        internal
+        pure
+        returns (uint256 nodes)
+    {
         assembly {
-            nodesSlot := heap.slot
+            mstore(0x20, heap.slot)
+            mstore(0, NODES_SLOT_SEED)
+            nodes := shl(NODES_SLOT_SHIFT, keccak256(0, 0x40))
         }
-        return nodesSlot;
     }
 }

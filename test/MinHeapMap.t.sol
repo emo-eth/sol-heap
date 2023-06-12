@@ -18,9 +18,8 @@ contract MinHeapMapTest is BaseTest {
     uint256 nodesSlot;
 
     function setUp() public virtual override {
-        assembly {
-            sstore(nodesSlot.slot, heap.slot)
-        }
+        nodesSlot = Helper._nodesSlot(heap);
+
         for (uint256 i = 1; i <= 257; i++) {
             preFilled.insert(i, i);
         }
@@ -90,7 +89,7 @@ contract MinHeapMapTest is BaseTest {
         key = bound(key, 1, type(uint32).max);
         Helper.update(nodesSlot, key, Node.wrap(toWrap));
         assertEq(Node.unwrap(Helper.get(nodesSlot, key)), toWrap);
-        assertEq(Node.unwrap(heap.nodes[key]), toWrap);
+        assertEq(Node.unwrap(heap.get(key)), toWrap);
     }
 
     function testUpdateAndGet() public {
@@ -98,7 +97,7 @@ contract MinHeapMapTest is BaseTest {
         uint256 toWrap = 420;
         Helper.update(nodesSlot, key, Node.wrap(toWrap));
         assertEq(Node.unwrap(Helper.get(nodesSlot, key)), toWrap);
-        assertEq(Node.unwrap(heap.nodes[key]), toWrap);
+        assertEq(Node.unwrap(heap.get(key)), toWrap);
     }
 
     function testPeek() public {
@@ -831,86 +830,102 @@ contract MinHeapMapTest is BaseTest {
         heap.insert(1, 1);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 1, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 1, _right: false })
+            )
         );
         heap.insert(2, 2);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 1, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 1, _right: true }))
         );
         heap.insert(3, 3);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 2, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 2, _right: false })
+            )
         );
         heap.insert(4, 4);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 2, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 2, _right: true }))
         );
         heap.insert(5, 5);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 3, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 3, _right: false })
+            )
         );
         heap.insert(6, 6);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 3, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 3, _right: true }))
         );
         heap.insert(7, 7);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 4, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 4, _right: false })
+            )
         );
         heap.insert(8, 8);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 4, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 4, _right: true }))
         );
         heap.insert(9, 9);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 5, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 5, _right: false })
+            )
         );
         heap.insert(10, 10);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 5, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 5, _right: true }))
         );
         heap.insert(11, 11);
 
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 6, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 6, _right: false })
+            )
         );
         heap.insert(12, 12);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 6, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 6, _right: true }))
         );
 
         heap.insert(13, 13);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 7, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 7, _right: false })
+            )
         );
         heap.insert(14, 14);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 7, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 7, _right: true }))
         );
 
         heap.insert(15, 15);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 8, _right: false}))
+            Pointer.unwrap(
+                PointerType.createPointer({ _key: 8, _right: false })
+            )
         );
 
         heap.insert(16, 16);
         assertEq(
             Pointer.unwrap(heap.metadata.insertPointer()),
-            Pointer.unwrap(PointerType.createPointer({_key: 8, _right: true}))
+            Pointer.unwrap(PointerType.createPointer({ _key: 8, _right: true }))
         );
     }
 
@@ -973,7 +988,7 @@ contract MinHeapMapTest is BaseTest {
             emit NodeLog(
                 uint8(i - rootKey + 101),
                 bytes32(Node.unwrap(Helper.get(_nodesSlot, i)))
-                );
+            );
         }
         emit Space();
     }
